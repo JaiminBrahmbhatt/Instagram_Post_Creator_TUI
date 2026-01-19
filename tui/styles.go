@@ -5,30 +5,82 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// Design System: Color Palette
+type ColorTheme struct {
+	Primary    lipgloss.Color
+	Secondary  lipgloss.Color
+	Background lipgloss.Color
+	Surface    lipgloss.Color
+	Text       lipgloss.Color
+	Subtle     lipgloss.Color
+	Error      lipgloss.Color
+	Success    lipgloss.Color
+	Warning    lipgloss.Color
+	Highlight  lipgloss.Color
+}
+
+var Theme = ColorTheme{
+	Primary:    lipgloss.Color("#7D56F4"), // Purple
+	Secondary:  lipgloss.Color("#EE6FF8"), // Pink
+	Background: lipgloss.Color("#1A1B26"), // Deep Blue/Black
+	Surface:    lipgloss.Color("#24283B"), // Lighter Blue/Black for cards
+	Text:       lipgloss.Color("#C0CAF5"), // White-ish
+	Subtle:     lipgloss.Color("#565F89"), // Gray-ish
+	Error:      lipgloss.Color("#F7768E"), // Red
+	Success:    lipgloss.Color("#9ECE6A"), // Green
+	Warning:    lipgloss.Color("#E0AF68"), // Orange
+	Highlight:  lipgloss.Color("#BB9AF7"), // Light Purple
+}
+
 var (
-	// Colors
-	ColorPrimary   = lipgloss.Color("#7D56F4")
-	ColorSecondary = lipgloss.Color("#FAFAFA")
-	ColorDarkGray  = lipgloss.Color("#353533")
-	ColorError     = lipgloss.Color("#FF7644")
-	ColorSuccess   = lipgloss.Color("#22C55E")
-	ColorAccent    = lipgloss.Color("#EE6FF8")
-	ColorLogGray   = lipgloss.Color("#949494")
-	ColorSubtle    = lipgloss.Color("#3C3836")
+	// Legacy Color Vars (Mapped to new Theme for backward compatibility)
+	ColorPrimary   = Theme.Primary
+	ColorSecondary = Theme.Text
+	ColorDarkGray  = Theme.Surface
+	ColorError     = Theme.Error
+	ColorSuccess   = Theme.Success
+	ColorAccent    = Theme.Secondary
+	ColorLogGray   = Theme.Subtle
+	ColorSubtle    = Theme.Subtle
 
 	PhotoLimitThreshold = 1000
 
-	// Base Styles
+	// --- Modern Styles ---
+
+	// App Shell
+	AppTitleStyle = lipgloss.NewStyle().
+			Foreground(Theme.Background).
+			Background(Theme.Primary).
+			Padding(0, 1).
+			Bold(true).
+			MarginLeft(2)
+
+	// Containers
+	CardStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(Theme.Subtle).
+			Padding(1, 2).
+			Background(Theme.Surface)
+
+	// Components
+	BadgeStyle = lipgloss.NewStyle().
+			Foreground(Theme.Background).
+			Background(Theme.Highlight).
+			Padding(0, 1).
+			Bold(true)
+
+	// --- Legacy Styles (Refined) ---
+
 	TitleStyle = lipgloss.NewStyle().
-			Foreground(ColorSecondary).
-			Background(ColorPrimary).
+			Foreground(Theme.Background).
+			Background(Theme.Primary).
 			Padding(0, 1)
 
 	DocStyle = lipgloss.NewStyle().Margin(1, 2)
 
 	PathStyle = lipgloss.NewStyle().
-			Foreground(ColorPrimary).
-			Background(ColorDarkGray).
+			Foreground(Theme.Highlight).
+			Background(Theme.Surface).
 			Padding(0, 1).
 			Bold(true)
 
@@ -39,39 +91,39 @@ var (
 	// Warning/Error Styles
 	WarnStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorError).
+			BorderForeground(Theme.Error).
 			Padding(1, 2).
 			Bold(true)
 
 	StatusMsgStyle = lipgloss.NewStyle().
-			Foreground(ColorSuccess)
+			Foreground(Theme.Success)
 
-	SpinnerStyle = lipgloss.NewStyle().Foreground(ColorAccent)
+	SpinnerStyle = lipgloss.NewStyle().Foreground(Theme.Secondary)
 
 	LoadingStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(ColorPrimary)
+			Foreground(Theme.Primary)
 
 	LoadingBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorPrimary).
+			BorderForeground(Theme.Primary).
 			Padding(2, 4).
 			Align(lipgloss.Center)
 
 	LogBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorDarkGray).
+			BorderForeground(Theme.Subtle).
 			Padding(1, 2).
 			Width(60).
 			Height(8)
 
 	LogEntryStyle = lipgloss.NewStyle().
-			Foreground(ColorLogGray).
+			Foreground(Theme.Subtle).
 			Italic(true)
 
 	SuccessBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorSuccess).
+			BorderForeground(Theme.Success).
 			Padding(2, 4).
 			Align(lipgloss.Center)
 )
@@ -81,13 +133,13 @@ func NewCustomDelegate() list.DefaultDelegate {
 	d := list.NewDefaultDelegate()
 	d.Styles.SelectedTitle = d.Styles.SelectedTitle.
 		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(ColorPrimary).
-		Foreground(ColorPrimary).
+		BorderForeground(Theme.Primary).
+		Foreground(Theme.Primary).
 		PaddingLeft(2)
 	d.Styles.SelectedDesc = d.Styles.SelectedDesc.
 		Border(lipgloss.NormalBorder(), false, false, false, true).
-		BorderForeground(ColorPrimary).
-		Foreground(ColorPrimary).
+		BorderForeground(Theme.Primary).
+		Foreground(Theme.Primary).
 		PaddingLeft(2)
 	return d
 }
