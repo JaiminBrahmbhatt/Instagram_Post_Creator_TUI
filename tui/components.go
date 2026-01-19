@@ -96,9 +96,9 @@ func NewPostsTable() table.Model {
 
 func NewSettingsList() list.Model {
 	items := []list.Item{
-		item{title: "Change Photos Directory", desc: "Set the root folder for media browsing"},
-		item{title: "Auto Cleanup", desc: "Toggle 30-day post cleanup"},
-		item{title: "Manage API Credentials", desc: "Update Instagram Access Token and ID"},
+		item{title: SettingsTitlePhotosDir, desc: "Set the root folder for media browsing"},
+		item{title: SettingsTitleCleanup, desc: "Toggle 30-day post cleanup"},
+		item{title: SettingsTitleEnv, desc: "Update API Keys, Dry Run, and URL Prefix"},
 	}
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"

@@ -41,7 +41,7 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 		}
 
 		switch selectedItem.title {
-		case "Change Photos Directory":
+		case SettingsTitlePhotosDir:
 			m.currentView = SettingsDirView
 			m.browserDir = m.photosDir
 			if m.browserDir == "" {
@@ -49,10 +49,10 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 			}
 			m.refreshBrowserTable()
 			m.browserTable.GotoTop()
-		case "Auto Cleanup":
+		case SettingsTitleCleanup:
 			m.setupStep = 1 // Reuse setup cleanup view
 			m.currentView = SetupView
-		case "Manage API Credentials":
+		case SettingsTitleEnv:
 			m.currentView = SettingsAuthView
 			m.authFocusIndex = 0
 			m.authEditing = false
