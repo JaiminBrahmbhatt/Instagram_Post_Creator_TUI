@@ -26,7 +26,7 @@ Establish the core visual language (colors, typography, spacing) and refactor th
 ## Phase 2: Component Modernization
 Update specific views and components to align with the new design system.
 
-- [ ] Task: Modernize Main Menu & Navigation
+- [x] Task: Modernize Main Menu & Navigation <!-- id: 3 --> [3d48a36]
     - [ ] Refactor `NewMenu` in `tui/components.go` to use `bubbles/list` with a custom, high-fidelity delegate.
     - [ ] Style the list items to look like "cards" or cleaner rows with icons.
     - [ ] Update `tui/views.go` to render the menu with the new style.
