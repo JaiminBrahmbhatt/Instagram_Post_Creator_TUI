@@ -5,6 +5,9 @@ import (
 	"log"
 	"os"
 
+	"net/http"
+	"path/filepath"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/jaiminb/insta-auto-post/api"
 	"github.com/jaiminb/insta-auto-post/db"
@@ -34,8 +37,27 @@ func main() {
 	scheduler := api.NewScheduler(database, client)
 	scheduler.Start()
 
+	// Start File Server to expose photos to Instagram
+	go func() {
+		// Get photos directory from DB
+		var photosDir string
+		err := database.Conn.QueryRow("SELECT value FROM settings WHERE key = 'photos_dir'").Scan(&photosDir)
+		if err != nil || photosDir == "" {
+			photosDir = "photos" // Fallback
+		}
+
+		absPath, _ := filepath.Abs(photosDir)
+		mux := http.NewServeMux()
+		mux.Handle("/", http.FileServer(http.Dir(absPath)))
+
+		log.Printf("Ready! Photo server listening on http://localhost:8080 (serving %s)", absPath)
+		if err := http.ListenAndServe(":8080", mux); err != nil {
+			log.Printf("Photo server error: %v", err)
+		}
+	}()
+
 	// Start TUI
-	p := tea.NewProgram(tui.InitialModel(database, client), tea.WithAltScreen())
+	p := tea.NewProgram(tui.InitialModel(database, client, scheduler.ReportChan, scheduler.TriggerChan), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

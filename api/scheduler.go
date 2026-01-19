@@ -1,23 +1,29 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/jaiminb/insta-auto-post/db"
 )
 
 type Scheduler struct {
-	Client *Client
-	DB     *db.Database
+	Client      *Client
+	DB          *db.Database
+	ReportChan  chan string
+	TriggerChan chan struct{}
 }
 
 func NewScheduler(database *db.Database, client *Client) *Scheduler {
 	return &Scheduler{
-		Client: client,
-		DB:     database,
+		Client:      client,
+		DB:          database,
+		ReportChan:  make(chan string, 10),
+		TriggerChan: make(chan struct{}, 1),
 	}
 }
 
@@ -52,7 +58,9 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 
 	if dryRun {
-		log.Printf("[DRY RUN] Publishing post %d with caption: %s", postID, caption)
+		s.report("[DRY RUN] Publishing post %d...", postID)
+	} else {
+		s.report("Publishing post %d: %s", postID, caption)
 	}
 
 	// 1. Get media for post
@@ -90,17 +98,57 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	var carouselID string
 
 	if dryRun {
-		log.Printf("[DRY RUN] Would upload %d files to %s", len(mediaPaths), urlPrefix)
+		s.report("[DRY RUN] Would upload %d files to %s", len(mediaPaths), urlPrefix)
 		carouselID = "DRY_RUN_ID"
 	} else {
 		// 2. Create item containers
 		var itemIDs []string
 		isCarousel := len(mediaPaths) > 1
 
+		s.report("Creating containers for %d files...", len(mediaPaths))
+
+		// Get photos directory to calculate relative paths
+		var photosDir string
+		s.DB.Conn.QueryRow("SELECT value FROM settings WHERE key = 'photos_dir'").Scan(&photosDir)
+		if photosDir == "" {
+			photosDir = "photos"
+		}
+		absPhotosDir, _ := filepath.Abs(photosDir)
+
 		for _, path := range mediaPaths {
-			publicURL := urlPrefix + filepath.Base(path)
-			// If it's a single image, isCarouselItem=false. If >1, it's true.
-			id, err := s.Client.CreateMediaContainer(publicURL, isCarousel)
+			absPath, _ := filepath.Abs(path)
+			relPath, err := filepath.Rel(absPhotosDir, absPath)
+			if err != nil {
+				relPath = filepath.Base(path) // Fallback
+			}
+
+			publicURL := urlPrefix + relPath
+
+			// Detect media type
+			ext := strings.ToLower(filepath.Ext(path))
+			mType := MediaTypeImage
+			if ext == ".mp4" || ext == ".mov" {
+				mType = MediaTypeVideo
+			}
+
+			s.report("  - Uploading %s (%s)", filepath.Base(path), mType)
+
+			// TEST OVERRIDE: If the filename is internet_test.jpg, use a real public URL
+			// so Instagram can actually download it for the test.
+			if filepath.Base(path) == "internet_test.jpg" {
+				publicURL = "https://picsum.photos/seed/insta_auto_post/1080/1080.jpg"
+			}
+
+			log.Printf("Creating media container for URL: %s", publicURL)
+
+			// For single posts, pass the caption here.
+			// For carousel items, caption must be empty and isCarouselItem=true.
+			itemCaption := ""
+			if !isCarousel {
+				itemCaption = caption
+			}
+
+			id, err := s.Client.CreateMediaContainer(publicURL, itemCaption, mType, isCarousel)
 			if err != nil {
 				log.Printf("Failed to create container for %s: %v", path, err)
 				s.markFailed(postID)
@@ -110,30 +158,30 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		}
 
 		if isCarousel {
+			s.report("Creating carousel container...")
 			id, err := s.Client.CreateCarouselContainer(caption, itemIDs)
 			if err != nil {
-				log.Printf("Failed to create carousel: %v", err)
+				s.report("❌ Failed to create carousel: %v", err)
 				s.markFailed(postID)
 				return
 			}
 			carouselID = id
 		} else {
-			// Logic for single media post (if needed in future, currently we assume carousel flow OR simple flow)
-			// Actually, if it's a single item, we just use that ID as the "containerID" to publish.
 			carouselID = itemIDs[0]
 		}
 
 		// 3. WAIT for processing before publishing
-		log.Printf("Waiting for container %s to be ready...", carouselID)
+		s.report("Waiting for Instagram processing...")
 		if err := s.Client.WaitForContainer(carouselID); err != nil {
-			log.Printf("Container processing failed: %v", err)
+			s.report("❌ Processing failed: %v", err)
 			s.markFailed(postID)
 			return
 		}
 
 		// 4. Publish
+		s.report("Publishing content...")
 		if _, err := s.Client.PublishContainer(carouselID); err != nil {
-			log.Printf("Failed to publish container: %v", err)
+			s.report("❌ Failed to publish: %v", err)
 			s.markFailed(postID)
 			return
 		}
@@ -144,9 +192,19 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	s.DB.Conn.Exec("UPDATE media SET is_posted = 1 WHERE id IN (SELECT media_id FROM post_media WHERE post_id = ?)", postID)
 
 	if dryRun {
-		log.Printf("[DRY RUN] Post %d marked as published", postID)
+		s.report("✅ [DRY RUN] Post %d complete", postID)
 	} else {
-		log.Printf("Successfully published post %d", postID)
+		s.report("✅ Successfully published post %d!", postID)
+	}
+}
+
+func (s *Scheduler) report(format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	log.Println(msg)
+	select {
+	case s.ReportChan <- msg:
+	default:
+		// Drop if full to avoid blocking
 	}
 }
 
@@ -154,11 +212,24 @@ func (s *Scheduler) markFailed(postID int64) {
 	s.DB.Conn.Exec("UPDATE posts SET status = 'failed' WHERE id = ?", postID)
 }
 
+func (s *Scheduler) Trigger() {
+	select {
+	case s.TriggerChan <- struct{}{}:
+	default:
+		// Already triggered
+	}
+}
+
 func (s *Scheduler) Start() {
 	ticker := time.NewTicker(1 * time.Minute)
 	go func() {
-		for range ticker.C {
-			s.CheckAndPublish()
+		for {
+			select {
+			case <-ticker.C:
+				s.CheckAndPublish()
+			case <-s.TriggerChan:
+				s.CheckAndPublish()
+			}
 		}
 	}()
 }

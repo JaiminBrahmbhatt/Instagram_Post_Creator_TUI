@@ -49,3 +49,11 @@ func fetchQuotaCmd(client *api.Client) func() tea.Msg {
 		}
 	}
 }
+
+type logMsg string
+
+func watchLogsCmd(sub chan string) tea.Cmd {
+	return func() tea.Msg {
+		return logMsg(<-sub)
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -12,6 +13,7 @@ type MediaType string
 
 const (
 	MediaTypeCarousel MediaType = "CAROUSEL"
+	MediaTypeImage    MediaType = "IMAGE"
 	MediaTypeReels    MediaType = "REELS"
 	MediaTypeStories  MediaType = "STORIES"
 	MediaTypeVideo    MediaType = "VIDEO"
@@ -104,17 +106,25 @@ func (c *Client) CreateCarouselContainer(caption string, children []string) (str
 	return c.makePostRequest("media", req)
 }
 
-func (c *Client) CreateMediaContainer(imageURL string, isCarouselItem bool) (string, error) {
+func (c *Client) CreateMediaContainer(mediaURL, caption string, mediaType MediaType, isCarouselItem bool) (string, error) {
 	req := MediaCreationRequest{
 		AccessToken:    c.AccessToken,
-		ImageURL:       imageURL,
+		Caption:        caption,
+		MediaType:      mediaType,
 		IsCarouselItem: isCarouselItem,
 	}
+
+	if mediaType == MediaTypeVideo {
+		req.VideoURL = mediaURL
+	} else {
+		req.ImageURL = mediaURL
+	}
+
 	return c.makePostRequest("media", req)
 }
 
 func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s?fields=status_code&access_token=%s", containerID, c.AccessToken)
+	url := fmt.Sprintf("https://graph.instagram.com/v20.0/%s?fields=status_code&access_token=%s", containerID, c.AccessToken)
 
 	resp, err := c.HTTPClient.Get(url)
 	if err != nil {
@@ -135,7 +145,7 @@ func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error)
 }
 
 func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/content_publishing_limit?fields=config,quota_usage&access_token=%s", c.IGID, c.AccessToken)
+	url := fmt.Sprintf("https://graph.instagram.com/v20.0/%s/content_publishing_limit?fields=config,quota_usage&access_token=%s", c.IGID, c.AccessToken)
 
 	resp, err := c.HTTPClient.Get(url)
 	if err != nil {
@@ -195,7 +205,8 @@ func (c *Client) WaitForContainer(containerID string) error {
 
 // makePostRequest handles the common logic for Instagram Graph API POST requests
 func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/%s", c.IGID, endpoint)
+	url := fmt.Sprintf("https://graph.instagram.com/v20.0/%s/%s", c.IGID, endpoint)
+	log.Printf("API Request: POST %s", url)
 
 	data, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
@@ -207,14 +218,24 @@ func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	var res ContainerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return "", err
+	// Decode into a map first to check for error field
+	var raw map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
+		return "", fmt.Errorf("failed to decode response: %v", err)
 	}
 
-	if res.ID == "" {
-		return "", fmt.Errorf("API request failed (no ID returned)")
+	if errObj, ok := raw["error"].(map[string]interface{}); ok {
+		msg := "API Error"
+		if m, ok := errObj["message"].(string); ok {
+			msg = m
+		}
+		return "", fmt.Errorf("%s (code: %v)", msg, errObj["code"])
 	}
 
-	return res.ID, nil
+	id, ok := raw["id"].(string)
+	if !ok || id == "" {
+		return "", fmt.Errorf("API request failed (no ID returned in response: %v)", raw)
+	}
+
+	return id, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,44 +22,53 @@ import (
 )
 
 type Model struct {
-	authEditing    bool
-	authFocusIndex int
-	authInputs     []textinput.Model
-	browserDir     string
-	browserTable   table.Model
-	caption        string
-	client         *api.Client
-	currentView    ViewState
-	db             *db.Database
-	fp             filepicker.Model
-	help           help.Model
-	input          textinput.Model
-	list           list.Model
-	mediaCount     int
-	photosDir      string
-	quitting       bool
-	quotaTotal     int
-	quotaUsage     int
-	selectedMedia  []string
-	settingsList   list.Model
-	setupStep      int // 0: dir, 1: cleanup
-	showLimitWarn  bool
-	statusMsg      string
-	table          table.Model
+	authEditing      bool
+	authFocusIndex   int
+	authInputs       []textinput.Model
+	browserDir       string
+	browserTable     table.Model
+	caption          string
+	client           *api.Client
+	currentView      ViewState
+	db               *db.Database
+	fp               filepicker.Model
+	help             help.Model
+	input            textinput.Model
+	isProcessing     bool
+	lastLogs         []string
+	list             list.Model
+	logSub           chan string
+	schedulerTrigger chan struct{}
+	mediaCount       int
+	photosDir        string
+	quitting         bool
+	quotaTotal       int
+	quotaUsage       int
+	selectedMedia    []string
+	settingsList     list.Model
+	setupStep        int // 0: dir, 1: cleanup
+	showLimitWarn    bool
+	spinner          spinner.Model
+	statusMsg        string
+	table            table.Model
 }
 
-func InitialModel(database *db.Database, client *api.Client) Model {
+func InitialModel(database *db.Database, client *api.Client, reportChan chan string, triggerChan chan struct{}) Model {
 	m := Model{
-		authInputs:   NewAuthInputs(),
-		browserTable: NewBrowserTable(),
-		client:       client,
-		db:           database,
-		fp:           NewFilePicker(),
-		help:         help.New(),
-		input:        NewCaptionInput(),
-		list:         NewMenu(),
-		settingsList: NewSettingsList(),
-		table:        NewPostsTable(),
+		authInputs:       NewAuthInputs(),
+		browserTable:     NewBrowserTable(),
+		client:           client,
+		db:               database,
+		fp:               NewFilePicker(),
+		help:             help.New(),
+		input:            NewCaptionInput(),
+		list:             NewMenu(),
+		settingsList:     NewSettingsList(),
+		table:            NewPostsTable(),
+		logSub:           reportChan,
+		schedulerTrigger: triggerChan,
+		lastLogs:         []string{},
+		spinner:          spinner.New(spinner.WithSpinner(spinner.Pulse), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("205")))),
 
 		currentView: MenuView,
 	}
@@ -89,7 +99,11 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 }
 
 func (m Model) Init() tea.Cmd {
-	return m.fp.Init()
+	return tea.Batch(
+		m.fp.Init(),
+		m.spinner.Tick,
+		watchLogsCmd(m.logSub),
+	)
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -109,6 +123,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// Handle specific messages
 	switch msg := msg.(type) {
+	case logMsg:
+		m.lastLogs = append(m.lastLogs, string(msg))
+		if len(m.lastLogs) > 5 {
+			m.lastLogs = m.lastLogs[len(m.lastLogs)-5:]
+		}
+
+		content := string(msg)
+		if strings.Contains(content, "Successfully published") || strings.Contains(content, "❌") {
+			m.isProcessing = false
+		} else if strings.Contains(content, "Publishing post") {
+			m.isProcessing = true
+		}
+
+		return m, watchLogsCmd(m.logSub)
+
 	case quotaMsg:
 		if msg.err != nil {
 			m.statusMsg = "Error fetching limits: " + msg.err.Error()
@@ -121,6 +150,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.handleWindowSize(msg)
 		return m, nil
+
+	case spinner.TickMsg:
+		var cmd tea.Cmd
+		m.spinner, cmd = m.spinner.Update(msg)
+		return m, cmd
 	}
 
 	// View-specific Update Logic
@@ -162,6 +196,15 @@ func (m Model) View() string {
 	}
 
 	var content string
+	if m.isProcessing {
+		content = "\n" + TitleStyle.Render(m.spinner.View()+" 🚀 POSTING IN PROGRESS...") + "\n\n"
+	}
+
+	// If we were processing and now we are done, show a success message in ComposerView
+	if m.currentView == ComposerView && !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
+		content = "\n" + TitleStyle.Render("✅ POSTING COMPLETE") + "\n\n"
+	}
+
 	switch m.currentView {
 	case BrowserView:
 		content = m.viewBrowser()
@@ -225,11 +268,18 @@ func (m *Model) updateBrowserView(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Model) updateComposerView(msg tea.Msg) tea.Cmd {
+	if m.isProcessing {
+		return nil // Block input while processing
+	}
+
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch {
+		case key.Matches(keyMsg, Keys.Back):
+			m.currentView = MenuView
+			return nil
 		case key.Matches(keyMsg, Keys.Enter): // Schedule
 			m.savePost(db.StatusScheduled, "+0 minutes", "Post scheduled for now!")
 		case key.Matches(keyMsg, Keys.Draft):
@@ -640,6 +690,14 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 	} else {
 		m.statusMsg = successMsg
 		m.selectedMedia = nil
+		if status == db.StatusScheduled {
+			m.isProcessing = true
+			select {
+			case m.schedulerTrigger <- struct{}{}:
+			default:
+			}
+			return // Stay on ComposerView to watch logs
+		}
 	}
 	m.currentView = MenuView
 }
@@ -677,6 +735,15 @@ func (m Model) viewBrowser() string {
 }
 
 func (m Model) viewComposer() string {
+	if m.isProcessing {
+		return "Please wait while your post is being published to Instagram...\n\nYou can watch the progress in the logs below."
+	}
+
+	// Check if we just finished
+	if !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
+		return "Done! Your post is live.\n\nPress 'q' or 'Esc' to return to the main menu."
+	}
+
 	return fmt.Sprintf(
 		"Composer (Enter: schedule NOW • d: save draft • q: cancel)\n\nSelected: %d files\n\n%s",
 		len(m.selectedMedia),
@@ -731,6 +798,17 @@ func (m Model) viewFooter() string {
 	if m.statusMsg != "" {
 		footer += "\n" + StatusMsgStyle.Render(m.statusMsg)
 	}
+
+	if len(m.lastLogs) > 0 {
+		footer += "\n\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			Italic(true).
+			Render("Latest Logs:")
+		for _, l := range m.lastLogs {
+			footer += "\n " + l
+		}
+	}
+
 	return footer
 }
 
