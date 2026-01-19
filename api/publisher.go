@@ -11,7 +11,7 @@ import (
 )
 
 func (s *Scheduler) PublishPost(postID int64, caption string) {
-	dryRun := os.Getenv("DRY_RUN") == "true"
+	dryRun := s.DB.GetConfigBool("dry_run", "DRY_RUN")
 
 	if dryRun {
 		s.report("[DRY RUN] Publishing post %d...", postID)
@@ -40,7 +40,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 
 	if dryRun {
-		urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
+		urlPrefix := s.DB.GetConfig("public_url_prefix", "PUBLIC_URL_PREFIX")
 		if urlPrefix == "" {
 			urlPrefix = "https://example.com/"
 		}
@@ -83,7 +83,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 }
 
 func (s *Scheduler) createContainers(mediaPaths []string, caption string) (string, error) {
-	urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
+	urlPrefix := s.DB.GetConfig("public_url_prefix", "PUBLIC_URL_PREFIX")
 	if urlPrefix == "" {
 		urlPrefix = "https://example.com/"
 	}
