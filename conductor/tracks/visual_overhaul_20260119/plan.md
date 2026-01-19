@@ -15,7 +15,7 @@ Establish the core visual language (colors, typography, spacing) and refactor th
         - [ ] Status indicators (badges, icons)
     - [ ] Verify the new styles compile and look correct in a simple test view.
 
-- [ ] Task: Redesign Global Layout (App Shell)
+- [x] Task: Redesign Global Layout (App Shell) <!-- id: 1 --> [dc1ce01]
     - [ ] Update the `View()` method in `tui/model.go` to use a cleaner "App Shell" layout.
     - [ ] Implement a consistent Header (App Title/Logo) and Footer (Status + Help).
     - [ ] Ensure the main content area has appropriate padding and centering.
