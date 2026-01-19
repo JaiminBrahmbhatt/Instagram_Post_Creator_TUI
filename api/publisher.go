@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -38,7 +39,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 
 	if dryRun {
-		urlPrefix := s.DB.GetConfig("public_url_prefix", "PUBLIC_URL_PREFIX")
+		urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
 		if urlPrefix == "" {
 			urlPrefix = "https://example.com/"
 		}
@@ -81,7 +82,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 }
 
 func (s *Scheduler) createContainers(mediaPaths []string, caption string) (string, error) {
-	urlPrefix := s.DB.GetConfig("public_url_prefix", "PUBLIC_URL_PREFIX")
+	urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
 	if urlPrefix == "" {
 		urlPrefix = "https://example.com/"
 	}

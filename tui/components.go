@@ -98,7 +98,7 @@ func NewSettingsList() list.Model {
 	items := []list.Item{
 		item{title: SettingsTitlePhotosDir, desc: "Set the root folder for media browsing"},
 		item{title: SettingsTitleCleanup, desc: "Toggle 30-day post cleanup"},
-		item{title: SettingsTitleEnv, desc: "Update API Keys, Dry Run, and URL Prefix"},
+		item{title: SettingsTitleEnv, desc: "Update API Keys and Dry Run Mode"},
 	}
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"
@@ -128,7 +128,7 @@ func getTableStyles() table.Styles {
 }
 
 func NewEnvInputs() []textinput.Model {
-	inputs := make([]textinput.Model, 4)
+	inputs := make([]textinput.Model, 3)
 
 	// Access Token
 	inputs[0] = textinput.New()
@@ -146,17 +146,11 @@ func NewEnvInputs() []textinput.Model {
 	inputs[1].CharLimit = 64
 	inputs[1].Width = 30
 
-	// Public URL Prefix
-	inputs[2] = textinput.New()
-	inputs[2].Placeholder = "Public URL Prefix (e.g. https://.../)"
-	inputs[2].CharLimit = 256
-	inputs[2].Width = 50
-
 	// Dry Run
-	inputs[3] = textinput.New()
-	inputs[3].Placeholder = "Dry Run (true/false)"
-	inputs[3].CharLimit = 5
-	inputs[3].Width = 10
+	inputs[2] = textinput.New()
+	inputs[2].Placeholder = "Dry Run (true/false)"
+	inputs[2].CharLimit = 5
+	inputs[2].Width = 10
 
 	return inputs
 }

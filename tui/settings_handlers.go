@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -59,7 +60,8 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 			// Pre-fill with current values
 			m.authInputs[0].SetValue(api.GetCredential("INSTA_ACCESS_TOKEN"))
 			m.authInputs[1].SetValue(api.GetCredential("INSTA_IG_ID"))
-			m.authInputs[2].SetValue(m.db.GetConfig("public_url_prefix", "PUBLIC_URL_PREFIX"))
+			m.authInputs[2].SetValue(fmt.Sprintf("%v", m.db.GetConfigBool("dry_run", "DRY_RUN")))
+
 			for i := range m.authInputs {
 				m.authInputs[i].Blur()
 				if i < 2 {
@@ -138,8 +140,7 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 				// Save all values
 				token := m.authInputs[0].Value()
 				igID := m.authInputs[1].Value()
-				urlPrefix := m.authInputs[2].Value()
-				dryRunStr := m.authInputs[3].Value()
+				dryRunStr := m.authInputs[2].Value()
 
 				if token != "" && igID != "" {
 					// Keychain
@@ -147,7 +148,6 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 					api.SetCredential("INSTA_IG_ID", igID)
 					
 					// DB
-					m.db.SetSetting("public_url_prefix", urlPrefix)
 					m.db.SetSetting("dry_run", dryRunStr)
 
 					// Update client

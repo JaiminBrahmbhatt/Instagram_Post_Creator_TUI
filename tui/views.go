@@ -145,7 +145,6 @@ func (m *Model) viewSettingsAuth() string {
 	labels := []string{
 		"Instagram Access Token",
 		"Instagram IG ID",
-		"Public URL Prefix",
 		"Dry Run Mode",
 	}
 
