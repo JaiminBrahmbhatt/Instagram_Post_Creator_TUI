@@ -26,8 +26,8 @@ func main() {
 
 	// Initialize API Client
 	client := api.NewClient(
-		os.Getenv("INSTA_ACCESS_TOKEN"),
-		os.Getenv("INSTA_IG_ID"),
+		api.GetCredential("INSTA_ACCESS_TOKEN"),
+		api.GetCredential("INSTA_IG_ID"),
 	)
 
 	// Start Scheduler

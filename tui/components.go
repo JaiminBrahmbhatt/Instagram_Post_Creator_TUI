@@ -85,6 +85,7 @@ func NewSettingsList() list.Model {
 	items := []list.Item{
 		item{title: "Change Photos Directory", desc: "Set the root folder for media browsing"},
 		item{title: "Auto Cleanup", desc: "Toggle 30-day post cleanup"},
+		item{title: "Manage API Credentials", desc: "Update Instagram Access Token and ID"},
 	}
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"
@@ -111,4 +112,26 @@ func getTableStyles() table.Styles {
 		Background(lipgloss.Color("57")).
 		Bold(false)
 	return s
+}
+
+func NewAuthInputs() []textinput.Model {
+	inputs := make([]textinput.Model, 2)
+
+	// Access Token
+	inputs[0] = textinput.New()
+	inputs[0].Placeholder = "Instagram Access Token"
+	inputs[0].EchoMode = textinput.EchoPassword
+	inputs[0].EchoCharacter = '•'
+	inputs[0].CharLimit = 512
+	inputs[0].Width = 50
+
+	// IG ID
+	inputs[1] = textinput.New()
+	inputs[1].Placeholder = "Instagram IG ID"
+	inputs[1].EchoMode = textinput.EchoPassword
+	inputs[1].EchoCharacter = '•'
+	inputs[1].CharLimit = 64
+	inputs[1].Width = 30
+
+	return inputs
 }

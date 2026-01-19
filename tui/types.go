@@ -16,6 +16,7 @@ const (
 	SchedulerView
 	SettingsView
 	SettingsDirView
+	SettingsAuthView
 	ComposerView
 )
 

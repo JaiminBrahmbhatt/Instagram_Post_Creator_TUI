@@ -16,6 +16,7 @@ type KeyMap struct {
 	Continue    key.Binding // 'c'
 	Draft       key.Binding // 'd'
 	AutoCleanup key.Binding // 'y'/'n'
+	Tab         key.Binding // tab
 }
 
 var Keys = KeyMap{
@@ -66,6 +67,10 @@ var Keys = KeyMap{
 	AutoCleanup: key.NewBinding(
 		key.WithKeys("y", "n"),
 		key.WithHelp("y/n", "confirm"),
+	),
+	Tab: key.NewBinding(
+		key.WithKeys("tab", "shift+tab"),
+		key.WithHelp("tab", "next field"),
 	),
 }
 
@@ -134,5 +139,19 @@ func (k SettingsDirKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{k.Up, k.Down, k.Enter},
 		{k.Select, k.Back},
+	}
+}
+
+// AuthKeyMap for credentials management.
+type AuthKeyMap struct{ KeyMap }
+
+func (k AuthKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.Enter, k.Back}
+}
+
+func (k AuthKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Tab, k.Enter},
+		{k.Back},
 	}
 }
