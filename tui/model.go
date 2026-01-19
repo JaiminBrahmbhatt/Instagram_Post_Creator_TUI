@@ -26,6 +26,13 @@ var (
 	docStyle = lipgloss.NewStyle().Margin(1, 2)
 
 	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
+	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Margin(1, 0)
+	pathStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("#7D56F4")).
+			Background(lipgloss.Color("#353533")).
+			Padding(0, 1).
+			Bold(true)
 )
 
 type item struct {
@@ -58,6 +65,7 @@ type Model struct {
 	setupStep     int // 0: dir, 1: cleanup
 	mediaCount    int
 	table         table.Model
+	showFullHelp  bool
 }
 
 func InitialModel(database *db.Database) Model {
@@ -286,11 +294,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Focus()
 				}
 			}
+		case "?":
+			m.showFullHelp = !m.showFullHelp
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v)
-		m.fp.SetHeight(msg.Height - v - 10) // Leave space for status
+		// Account for path (1) + help (1) + status (1) + margins/padding (~4)
+		footerHeight := 6
+		m.list.SetSize(msg.Width-h, msg.Height-v-footerHeight)
+		m.fp.SetHeight(msg.Height - v - footerHeight - 2)
+		m.table.SetHeight(msg.Height - v - footerHeight - 4)
 	}
 
 	var cmd tea.Cmd
@@ -363,14 +376,14 @@ func (m Model) View() string {
 	case "setup":
 		title := titleStyle.Render("First Time Setup")
 		if m.setupStep == 0 {
-			s = title + "\n\nPick a directory for your photos:\n\n" + m.fp.View() + "\n\n(Enter to select, 'q' to quit)"
+			s = title + "\n\nPick a directory for your photos:\n\n" + m.fp.View()
 		} else {
 			s = title + "\n\nAuto Cleanup\n\nWould you like to automatically remove photos after 30 days if they have been posted?\n\n(y/n)"
 		}
 	case "dashboard":
-		s = "Dashboard View (Work in Progress)\n\nPress 'q' to go back."
+		s = "Dashboard View (Work in Progress)"
 	case "browser":
-		s = "Select Media (Enter to add to selection, 'c' to continue, 'q' to menu)\n\n"
+		s = "Select Media (Enter: toggle selection • c: continue • q: back)\n\n"
 		if len(m.selectedMedia) > 0 {
 			s += fmt.Sprintf("Selected (%d): ", len(m.selectedMedia))
 			var names []string
@@ -380,22 +393,39 @@ func (m Model) View() string {
 			s += strings.Join(names, ", ") + "\n\n"
 		}
 		s += m.fp.View()
-		if m.statusMsg != "" {
-			s += "\n\n" + m.statusMsg
-		}
 	case "composer":
 		s = fmt.Sprintf(
-			"Composer\n\nSelected: %d files\n\n%s\n\n(Enter to schedule NOW, 'd' to save draft, 'q' to cancel)",
+			"Composer (Enter: schedule NOW • d: save draft • q: cancel)\n\nSelected: %d files\n\n%s",
 			len(m.selectedMedia),
 			m.input.View(),
 		)
 	case "scheduler":
-		s = "Scheduled Posts & History\n\n" + m.table.View() + "\n\nPress 'q' for menu"
-	default:
+		s = "Scheduled Posts & History (q: back)\n\n" + m.table.View()
+	default: // menu
+		// We use a custom viewer for the list to control the help
+		m.list.SetShowHelp(false)
 		s = m.list.View()
-		if m.statusMsg != "" {
-			s += "\n\n" + m.statusMsg
-		}
 	}
-	return docStyle.Render(s)
+
+	// Bottom sections: Path and Footer
+	var footer string
+
+	// Highlighted Path (only if we have a context or in browser)
+	currentPath := m.fp.CurrentDirectory
+	if currentPath != "" {
+		footer += pathStyle.Render("📍 "+currentPath) + "\n"
+	}
+
+	// Default help menu
+	if m.showFullHelp {
+		footer += helpStyle.Render("enter: select • c: continue • d: draft • esc: back • q: quit • ?: back")
+	} else {
+		footer += helpStyle.Render("↑/k up • ↓/j down • / filter • q quit • ? more")
+	}
+
+	if m.statusMsg != "" {
+		footer += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("205")).Render(m.statusMsg)
+	}
+
+	return docStyle.Render(s + "\n\n" + footer)
 }
