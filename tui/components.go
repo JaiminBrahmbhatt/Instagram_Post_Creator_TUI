@@ -127,8 +127,8 @@ func getTableStyles() table.Styles {
 	return s
 }
 
-func NewAuthInputs() []textinput.Model {
-	inputs := make([]textinput.Model, 2)
+func NewEnvInputs() []textinput.Model {
+	inputs := make([]textinput.Model, 4)
 
 	// Access Token
 	inputs[0] = textinput.New()
@@ -145,6 +145,18 @@ func NewAuthInputs() []textinput.Model {
 	inputs[1].EchoCharacter = '•'
 	inputs[1].CharLimit = 64
 	inputs[1].Width = 30
+
+	// Public URL Prefix
+	inputs[2] = textinput.New()
+	inputs[2].Placeholder = "Public URL Prefix (e.g. https://.../)"
+	inputs[2].CharLimit = 256
+	inputs[2].Width = 50
+
+	// Dry Run
+	inputs[3] = textinput.New()
+	inputs[3].Placeholder = "Dry Run (true/false)"
+	inputs[3].CharLimit = 5
+	inputs[3].Width = 10
 
 	return inputs
 }

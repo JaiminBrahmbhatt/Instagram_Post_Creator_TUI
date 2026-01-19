@@ -12,7 +12,7 @@ import (
 
 func InitialModel(database *db.Database, client *api.Client, reportChan chan string, triggerChan chan struct{}) *Model {
 	m := &Model{
-		authInputs:       NewAuthInputs(),
+		authInputs:       NewEnvInputs(),
 		browserTable:     NewBrowserTable(),
 		client:           client,
 		db:               database,

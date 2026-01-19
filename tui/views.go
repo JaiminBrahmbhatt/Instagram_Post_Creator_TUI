@@ -138,8 +138,8 @@ func (m *Model) viewSettingsDir() string {
 
 func (m *Model) viewSettingsAuth() string {
 	var b strings.Builder
-	b.WriteString(TitleStyle.Render("Manage API Credentials") + "\n\n")
-	b.WriteString("These values are stored SECURELY in your OS Keychain.\n\n")
+	b.WriteString(TitleStyle.Render("Environment Configuration") + "\n\n")
+	b.WriteString("Keys are stored in Keychain, other settings in local database.\n\n")
 
 	for i := range m.authInputs {
 		prefix := "  "
