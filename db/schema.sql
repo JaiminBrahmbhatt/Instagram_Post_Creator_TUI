@@ -31,3 +31,8 @@ CREATE TABLE IF NOT EXISTS post_media (
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
     FOREIGN KEY (media_id) REFERENCES media(id)
 );
+-- Settings table for app configuration
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);

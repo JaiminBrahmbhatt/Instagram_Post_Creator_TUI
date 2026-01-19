@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,7 +22,86 @@ func InitDB(path string) (*Database, error) {
 		return nil, err
 	}
 
-	return &Database{Conn: db}, nil
+	d := &Database{Conn: db}
+	if err := d.executeSchema(); err != nil {
+		return nil, err
+	}
+
+	return d, nil
+}
+
+func (db *Database) executeSchema() error {
+	schema, err := os.ReadFile("db/schema.sql")
+	if err != nil {
+		return err
+	}
+	_, err = db.Conn.Exec(string(schema))
+	return err
+}
+
+func (db *Database) GetSetting(key string) (string, error) {
+	var value string
+	err := db.Conn.QueryRow("SELECT value FROM settings WHERE key = ?", key).Scan(&value)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	return value, err
+}
+
+func (db *Database) SetSetting(key, value string) error {
+	_, err := db.Conn.Exec(`
+		INSERT INTO settings (key, value) VALUES (?, ?)
+		ON CONFLICT(key) DO UPDATE SET value = excluded.value
+	`, key, value)
+	return err
+}
+
+func (db *Database) GetDirMediaCount(dir string) (int, error) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, err
+	}
+	count := 0
+	for _, f := range files {
+		if !f.IsDir() {
+			ext := strings.ToLower(filepath.Ext(f.Name()))
+			if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
+				count++
+			}
+		}
+	}
+	return count, nil
+}
+
+func (db *Database) RunCleanup() error {
+	autoCleanup, err := db.GetSetting("auto_cleanup")
+	if err != nil || autoCleanup != "1" {
+		return nil
+	}
+
+	rows, err := db.Conn.Query(`
+		SELECT DISTINCT m.path FROM media m
+		JOIN post_media pm ON m.id = pm.media_id
+		JOIN posts p ON pm.post_id = p.id
+		WHERE m.is_posted = 1
+		AND p.published_at < datetime('now', '-30 days')
+	`)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var path string
+		if err := rows.Scan(&path); err != nil {
+			continue
+		}
+		// Delete file
+		os.Remove(path)
+		// Mark as ignore in DB so we don't try again
+		db.Conn.Exec("UPDATE media SET ignore = 1 WHERE path = ?", path)
+	}
+	return nil
 }
 
 func CalculateHash(filePath string) (string, error) {
