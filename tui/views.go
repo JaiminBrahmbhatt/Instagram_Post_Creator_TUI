@@ -139,14 +139,31 @@ func (m *Model) viewSettingsDir() string {
 func (m *Model) viewSettingsAuth() string {
 	var b strings.Builder
 	b.WriteString(TitleStyle.Render("Environment Configuration") + "\n\n")
-	b.WriteString("Keys are stored in Keychain, other settings in local database.\n\n")
+	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Keys are stored in Keychain, other settings in local database.") + "\n\n")
+
+	labels := []string{
+		"Instagram Access Token",
+		"Instagram IG ID",
+		"Public URL Prefix",
+		"Dry Run Mode",
+	}
 
 	for i := range m.authInputs {
-		prefix := "  "
+		label := labels[i]
 		if i == m.authFocusIndex {
-			prefix = lipgloss.NewStyle().Foreground(ColorPrimary).Render("> ")
+			label = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true).Render(label)
+		} else {
+			label = lipgloss.NewStyle().Foreground(Theme.Text).Render(label)
 		}
-		b.WriteString(prefix + m.authInputs[i].View() + "\n\n")
+
+		// Cursor indicator
+		indicator := "  "
+		if i == m.authFocusIndex {
+			indicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("> ")
+		}
+
+		b.WriteString(indicator + label + "\n")
+		b.WriteString("  " + m.authInputs[i].View() + "\n\n")
 	}
 
 	if m.authEditing {
