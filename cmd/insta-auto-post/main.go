@@ -21,6 +21,15 @@ func main() {
 		log.Println("No .env file found, relying on environment variables")
 	}
 
+	// Redirect logs to a file to avoid messing up the TUI
+	f, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Printf("error opening file: %v", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	log.SetOutput(f)
+
 	// Initialize DB
 	database, err := db.InitDB("insta_auto_post.db")
 	if err != nil {

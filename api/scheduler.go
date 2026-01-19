@@ -200,7 +200,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 
 func (s *Scheduler) report(format string, args ...interface{}) {
 	msg := fmt.Sprintf(format, args...)
-	log.Println(msg)
+	log.Println(msg) // Now safely writing to debug.log
 	select {
 	case s.ReportChan <- msg:
 	default:

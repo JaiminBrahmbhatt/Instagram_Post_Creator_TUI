@@ -51,6 +51,11 @@ type Model struct {
 	spinner          spinner.Model
 	statusMsg        string
 	table            table.Model
+	width            int
+	height           int
+	showSuccess      bool
+	lastResult       string
+	currentStatus    string
 }
 
 func InitialModel(database *db.Database, client *api.Client, reportChan chan string, triggerChan chan struct{}) Model {
@@ -68,7 +73,8 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		logSub:           reportChan,
 		schedulerTrigger: triggerChan,
 		lastLogs:         []string{},
-		spinner:          spinner.New(spinner.WithSpinner(spinner.Pulse), spinner.WithStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("205")))),
+		spinner:          spinner.New(spinner.WithSpinner(spinner.Points), spinner.WithStyle(SpinnerStyle)),
+		currentStatus:    "Sharing your story...",
 
 		currentView: MenuView,
 	}
@@ -109,6 +115,10 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	// Global Key Handling
 	if msg, ok := msg.(tea.KeyMsg); ok {
+		if m.showSuccess {
+			m.showSuccess = false
+			return m, nil
+		}
 		switch {
 		case key.Matches(msg, Keys.Quit):
 			m.quitting = true
@@ -125,15 +135,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case logMsg:
 		m.lastLogs = append(m.lastLogs, string(msg))
-		if len(m.lastLogs) > 5 {
-			m.lastLogs = m.lastLogs[len(m.lastLogs)-5:]
+		if len(m.lastLogs) > 8 {
+			m.lastLogs = m.lastLogs[len(m.lastLogs)-8:]
 		}
 
 		content := string(msg)
-		if strings.Contains(content, "Successfully published") || strings.Contains(content, "❌") {
+		m.currentStatus = m.cleanLogLine(content)
+		if strings.Contains(content, "Successfully published") {
 			m.isProcessing = false
+			m.showSuccess = true
+			m.lastResult = "Post published successfully!"
+		} else if strings.Contains(content, "❌") {
+			m.isProcessing = false
+			m.showSuccess = true
+			m.lastResult = content
 		} else if strings.Contains(content, "Publishing post") {
 			m.isProcessing = true
+			m.showSuccess = false
 		}
 
 		return m, watchLogsCmd(m.logSub)
@@ -197,36 +215,85 @@ func (m Model) View() string {
 
 	var content string
 	if m.isProcessing {
-		content = "\n" + TitleStyle.Render(m.spinner.View()+" 🚀 POSTING IN PROGRESS...") + "\n\n"
+		spinner := m.spinner.View()
+
+		// Post Status Card
+		statusCard := LoadingBoxStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				LoadingStyle.Render(spinner+"  "+m.currentStatus),
+				"\n",
+				lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("Hold tight, we're uploading to Instagram"),
+			),
+		)
+
+		// Logs monitor
+		var logLines []string
+		for _, l := range m.lastLogs {
+			logLines = append(logLines, LogEntryStyle.Render(l))
+		}
+		// Ensure it fills the height or at least looks consistent
+		for len(logLines) < 8 {
+			logLines = append(logLines, "")
+		}
+
+		logMonitor := LogBoxStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Left,
+				lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Activity Log"),
+				"\n",
+				strings.Join(logLines, "\n"),
+			),
+		)
+
+		// Layout the whole thing
+		mainDisplay := lipgloss.JoinVertical(lipgloss.Center,
+			statusCard,
+			"\n",
+			logMonitor,
+		)
+
+		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, mainDisplay)
+		return DocStyle.Render(content)
+	} else if m.showSuccess {
+		// Post Success Card
+		icon := "✅"
+		if strings.Contains(m.lastResult, "❌") || strings.Contains(m.lastResult, "Error") {
+			icon = "❌"
+		}
+
+		successCard := SuccessBoxStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				LoadingStyle.Render(icon+"  "+m.lastResult),
+				"\n",
+				lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("Press any key to continue"),
+			),
+		)
+		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, successCard)
+		return DocStyle.Render(content)
+	} else {
+		switch m.currentView {
+		case BrowserView:
+			content = m.viewBrowser()
+		case ComposerView:
+			content = m.viewComposer()
+		case DashboardView:
+			content = m.viewDashboard()
+		case MenuView:
+			content = m.list.View()
+		case SchedulerView:
+			content = "Scheduled Posts & History (q: back)\n\n" + m.table.View()
+		case SettingsAuthView:
+			content = m.viewSettingsAuth()
+		case SettingsDirView:
+			content = m.viewSettingsDir()
+		case SettingsView:
+			content = m.settingsList.View()
+		case SetupView:
+			content = m.viewSetup()
+		}
 	}
 
-	// If we were processing and now we are done, show a success message in ComposerView
-	if m.currentView == ComposerView && !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
-		content = "\n" + TitleStyle.Render("✅ POSTING COMPLETE") + "\n\n"
-	}
-
-	switch m.currentView {
-	case BrowserView:
-		content = m.viewBrowser()
-	case ComposerView:
-		content = m.viewComposer()
-	case DashboardView:
-		content = m.viewDashboard()
-	case MenuView:
-		content = m.list.View()
-	case SchedulerView:
-		content = "Scheduled Posts & History (q: back)\n\n" + m.table.View()
-	case SettingsAuthView:
-		content = m.viewSettingsAuth()
-	case SettingsDirView:
-		content = m.viewSettingsDir()
-	case SettingsView:
-		content = m.settingsList.View()
-	case SetupView:
-		content = m.viewSetup()
-	}
-
-	return DocStyle.Render(content + "\n\n" + m.viewFooter())
+	footer := m.viewFooter()
+	return DocStyle.Render(content + "\n\n" + footer)
 }
 
 // =========================================================================
@@ -595,6 +662,8 @@ func (m *Model) handleBrowserSelection() {
 }
 
 func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
+	m.width = msg.Width
+	m.height = msg.Height
 	m.help.Width = msg.Width
 	h, v := DocStyle.GetFrameSize()
 	baseHeight := msg.Height - v - 1
@@ -736,7 +805,7 @@ func (m Model) viewBrowser() string {
 
 func (m Model) viewComposer() string {
 	if m.isProcessing {
-		return "Please wait while your post is being published to Instagram...\n\nYou can watch the progress in the logs below."
+		return "" // Content is handled by the global isProcessing overlay in View()
 	}
 
 	// Check if we just finished
@@ -799,17 +868,15 @@ func (m Model) viewFooter() string {
 		footer += "\n" + StatusMsgStyle.Render(m.statusMsg)
 	}
 
-	if len(m.lastLogs) > 0 {
-		footer += "\n\n" + lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
-			Italic(true).
-			Render("Latest Logs:")
-		for _, l := range m.lastLogs {
-			footer += "\n " + l
-		}
-	}
-
 	return footer
+}
+
+func (m Model) cleanLogLine(line string) string {
+	// standard Go log format: 2026/01/19 12:28:57 Message (20 chars + space)
+	if len(line) > 20 && strings.Contains(line[:20], "/") && strings.Contains(line[:20], ":") {
+		return strings.TrimSpace(line[20:])
+	}
+	return line
 }
 
 func (m Model) viewSettingsDir() string {

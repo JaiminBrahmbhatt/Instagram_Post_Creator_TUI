@@ -12,6 +12,7 @@ var (
 	ColorDarkGray  = lipgloss.Color("#353533")
 	ColorError     = lipgloss.Color("202")
 	ColorSuccess   = lipgloss.Color("205")
+	ColorAccent    = lipgloss.Color("212")
 
 	// Base Styles
 	TitleStyle = lipgloss.NewStyle().
@@ -40,6 +41,35 @@ var (
 
 	StatusMsgStyle = lipgloss.NewStyle().
 			Foreground(ColorSuccess)
+
+	SpinnerStyle = lipgloss.NewStyle().Foreground(ColorAccent)
+
+	LoadingStyle = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ColorPrimary)
+
+	LoadingBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ColorPrimary).
+			Padding(2, 4).
+			Align(lipgloss.Center)
+
+	LogBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ColorDarkGray).
+			Padding(1, 2).
+			Width(60).
+			Height(8)
+
+	LogEntryStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("246")).
+			Italic(true)
+
+	SuccessBoxStyle = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ColorSuccess).
+			Padding(2, 4).
+			Align(lipgloss.Center)
 )
 
 // List Delegate Styles
