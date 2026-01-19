@@ -81,7 +81,6 @@ INSTA_IG_ID=...
 INSTA_APP_ID=...
 INSTA_APP_SECRET=...
 DRY_RUN=true  # Set to false to actually post
-PUBLIC_URL_PREFIX=https://your-tunnel.ngrok.io/ # Required for non-dry-run
 ```
 
 ### Running the App
@@ -129,4 +128,3 @@ go run ./cmd/post-creator
 
 - **"Photo Limit Reached"**: The directory has too many files. Delete old ones or enable Auto-Cleanup.
 - **API Errors**: Check `.env` credentials and `debug.log`.
-- **Images not loading on Instagram**: Ensure `PUBLIC_URL_PREFIX` is reachable from the internet.

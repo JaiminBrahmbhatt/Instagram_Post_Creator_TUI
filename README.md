@@ -44,7 +44,6 @@ INSTA_APP_SECRET=your_app_secret
 
 # App Settings
 DRY_RUN=true                    # Set to false for production
-PUBLIC_URL_PREFIX=https://.../  # Public prefix for media files
 ```
 
 ### 3. Installation & Usage

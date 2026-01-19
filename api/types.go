@@ -27,21 +27,6 @@ const (
 	ContainerStatusPublished  ContainerStatus = "PUBLISHED"
 )
 
-// Request Types
-
-type MediaCreationRequest struct {
-	Caption        string    `json:"caption,omitempty"`
-	MediaType      MediaType `json:"media_type,omitempty"`
-	ImageURL       string    `json:"image_url,omitempty"`
-	VideoURL       string    `json:"video_url,omitempty"`
-	IsCarouselItem bool      `json:"is_carousel_item,omitempty"`
-	Children       string    `json:"children,omitempty"` // Comma-separated list of IDs
-}
-
-type MediaPublishRequest struct {
-	CreationID string `json:"creation_id"`
-}
-
 // Response Types
 
 type ContainerResponse struct {
