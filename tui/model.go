@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -65,7 +66,7 @@ type Model struct {
 	browserTable  table.Model
 	browserDir    string
 	settingsList  list.Model
-	showFullHelp  bool
+	help          help.Model
 	client        *api.Client
 	quotaUsage    int
 	quotaTotal    int
@@ -104,8 +105,8 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 	l.Styles.HelpStyle = helpStyle
 	l.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
-			key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+			Keys.Enter,
+			Keys.Quit,
 		}
 	}
 
@@ -162,8 +163,8 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 	sl.Styles.Title = titleStyle
 	sl.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
-			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
-			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+			Keys.Enter,
+			Keys.Back,
 		}
 	}
 
@@ -177,6 +178,7 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 		settingsList: sl,
 		currentView:  "menu",
 		client:       client,
+		help:         help.New(),
 	}
 
 	// Check for first-time setup
@@ -320,8 +322,14 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		switch {
+		case key.Matches(msg, Keys.Quit):
+			m.quitting = true
+			return m, tea.Quit
+		case key.Matches(msg, Keys.Back):
+			if m.currentView == "menu" && m.list.FilterState() == list.Filtering {
+				break
+			}
 			if m.currentView == "menu" || m.currentView == "setup" {
 				m.quitting = true
 				return m, tea.Quit
@@ -332,7 +340,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.currentView = "menu"
 			return m, nil
-		case "enter":
+		case key.Matches(msg, Keys.Enter):
 			if m.showLimitWarn {
 				m.showLimitWarn = false
 				return m, nil
@@ -452,7 +460,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.currentView = "menu"
 			}
-		case "d":
+		case key.Matches(msg, Keys.Draft):
 			if m.currentView == "composer" {
 				m.caption = m.input.Value()
 				_, err := m.db.SavePost(m.caption, m.selectedMedia, "", "draft")
@@ -464,7 +472,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.currentView = "menu"
 			}
-		case "y", "n":
+		case key.Matches(msg, Keys.AutoCleanup):
 			if m.currentView == "setup" && m.setupStep == 1 {
 				val := "0"
 				if msg.String() == "y" {
@@ -478,19 +486,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.checkMediaCount() // Check now that setup is done
 				return m, nil
 			}
-		case " ":
-			if m.currentView == "browser" {
-				// We don't use space for selection here as filepicker uses Enter,
-				// but we could use it to toggle if we wanted to build custom logic.
-			}
-		case "c":
+
+		case key.Matches(msg, Keys.Continue):
 			if m.currentView == "browser" {
 				if len(m.selectedMedia) > 0 {
 					m.currentView = "composer"
 					m.input.Focus()
 				}
 			}
-		case "s":
+		case key.Matches(msg, Keys.Select):
 			if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
 				path := m.fp.CurrentDirectory
 				if m.currentView == "settings_dir" {
@@ -511,10 +515,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
-		case "?":
-			m.showFullHelp = !m.showFullHelp
+		case key.Matches(msg, Keys.Help):
+			m.help.ShowAll = !m.help.ShowAll
 		}
 	case tea.WindowSizeMsg:
+		m.help.Width = msg.Width
 		h, v := docStyle.GetFrameSize()
 		// Determine heights
 		// Wrapper margin/padding + status line (1)
@@ -540,7 +545,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.browserTable, cmd = m.browserTable.Update(msg)
 		if m.currentView == "settings_dir" && msg != nil {
 			// Handle Enter for directory navigation in settings_dir
-			if k, ok := msg.(tea.KeyMsg); ok && k.String() == "enter" {
+			if k, ok := msg.(tea.KeyMsg); ok && key.Matches(k, Keys.Enter) {
 				selectedRow := m.browserTable.SelectedRow()
 				if len(selectedRow) >= 2 {
 					name := selectedRow[1]
@@ -667,19 +672,25 @@ func (m Model) View() string {
 	}
 
 	// Manual Help Footer (only for views WITHOUT built-in help)
+	// Help Footer
 	if m.currentView != "menu" && m.currentView != "settings" {
-		if m.showFullHelp {
-			footer += helpStyle.Render("enter: select • c: continue • d: draft • esc/q: back • ?: back")
-		} else {
-			keys := "↑/k up • ↓/j down • / filter • q quit"
-			if m.currentView == "browser" && len(m.selectedMedia) > 0 {
-				keys += " • c continue"
-			}
-			if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
-				keys += " • s select"
-			}
-			keys += " • ? more"
-			footer += helpStyle.Render(keys)
+		var km help.KeyMap
+		switch m.currentView {
+		case "browser":
+			km = BrowserKeyMap{KeyMap: Keys, HasSelection: len(m.selectedMedia) > 0}
+		case "composer":
+			km = ComposerKeyMap{KeyMap: Keys}
+		case "setup":
+			km = SetupKeyMap{KeyMap: Keys, Step: m.setupStep}
+		case "settings_dir":
+			km = SettingsDirKeyMap{KeyMap: Keys}
+		case "dashboard":
+			// Simple back key for dashboard
+			km = SettingsDirKeyMap{KeyMap: Keys} // Reuse or make simple
+		}
+
+		if km != nil {
+			footer += "\n" + m.help.View(km)
 		}
 	}
 
