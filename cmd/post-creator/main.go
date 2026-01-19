@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -48,21 +49,28 @@ func main() {
 	scheduler.Start()
 
 	// Start File Server to expose photos to Instagram
+	// Get photos directory from DB
+	var photosDir string
+	err = database.Conn.QueryRow("SELECT value FROM settings WHERE key = 'photos_dir'").Scan(&photosDir)
+	if err != nil || photosDir == "" {
+		photosDir = "photos" // Fallback
+	}
+
+	absPath, _ := filepath.Abs(photosDir)
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir(absPath)))
+
+	server := &http.Server{Addr: ":8080", Handler: mux}
 	go func() {
-		// Get photos directory from DB
-		var photosDir string
-		err := database.Conn.QueryRow("SELECT value FROM settings WHERE key = 'photos_dir'").Scan(&photosDir)
-		if err != nil || photosDir == "" {
-			photosDir = "photos" // Fallback
-		}
-
-		absPath, _ := filepath.Abs(photosDir)
-		mux := http.NewServeMux()
-		mux.Handle("/", http.FileServer(http.Dir(absPath)))
-
 		log.Printf("Ready! Photo server listening on http://localhost:8080 (serving %s)", absPath)
-		if err := http.ListenAndServe(":8080", mux); err != nil {
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("Photo server error: %v", err)
+		}
+	}()
+	defer func() {
+		log.Println("Shutting down photo server...")
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Printf("Server shutdown error: %v", err)
 		}
 	}()
 
