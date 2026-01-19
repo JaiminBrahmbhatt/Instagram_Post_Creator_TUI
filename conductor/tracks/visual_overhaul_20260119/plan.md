@@ -43,7 +43,7 @@ Update specific views and components to align with the new design system.
     - [ ] Improve the layout of the "Selected Media" summary in the composer.
     - [ ] Add clear visual cues for "Draft" vs "Schedule" actions.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Component Modernization' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Component Modernization' (Protocol in workflow.md) <!-- id: 6 --> [checkpoint: a8e79b8]
 
 ## Phase 3: Polish & Interaction
 Focus on the finer details, animations, and status feedback to make the app feel responsive and "alive".
