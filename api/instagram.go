@@ -123,7 +123,7 @@ func (c *Client) PublishContainer(containerID string) (string, error) {
 
 func (c *Client) WaitForContainer(containerID string) error {
 	// Poll for up to 5 minutes
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	timeout := time.After(5 * time.Minute)
 

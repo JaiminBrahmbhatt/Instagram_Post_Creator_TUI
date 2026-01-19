@@ -19,7 +19,7 @@ func NewScheduler(database *db.Database, client *Client) *Scheduler {
 	return &Scheduler{
 		Client:      client,
 		DB:          database,
-		ReportChan:  make(chan string, 10),
+		ReportChan:  make(chan string, 100),
 		TriggerChan: make(chan struct{}, 1),
 	}
 }
@@ -44,11 +44,7 @@ func (s *Scheduler) CheckAndPublish() {
 func (s *Scheduler) report(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	log.Println(msg) // Now safely writing to debug.log
-	select {
-	case s.ReportChan <- msg:
-	default:
-		// Drop if full to avoid blocking
-	}
+	s.ReportChan <- msg
 }
 
 // markFailed is now handled via DB.MarkPostStatus(id, db.StatusFailed) directly in publisher.go

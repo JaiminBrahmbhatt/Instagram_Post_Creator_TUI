@@ -134,6 +134,15 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 		if err != nil {
 			return "", err
 		}
+
+		// Wait for child container if it's part of a carousel
+		if isCarousel {
+			s.report("  - Waiting for %s to be ready...", filepath.Base(path))
+			if err := s.Client.WaitForContainer(id); err != nil {
+				return "", fmt.Errorf("child container failed: %w", err)
+			}
+		}
+
 		itemIDs = append(itemIDs, id)
 	}
 

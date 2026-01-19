@@ -136,10 +136,13 @@ func (m *Model) handleLogMsg(msg logMsg) {
 
 	content := string(msg)
 	m.currentStatus = m.cleanLogLine(content)
-	if strings.Contains(content, "Successfully published") {
+	if strings.Contains(content, "Successfully published") || (strings.Contains(content, "[DRY RUN]") && strings.Contains(content, "complete")) {
 		m.isProcessing = false
 		m.showSuccess = true
-		m.lastResult = "Post published successfully!"
+		m.lastResult = "Process complete!"
+		if strings.Contains(content, "Successfully published") {
+			m.lastResult = "Post published successfully!"
+		}
 	} else if strings.Contains(content, "❌") {
 		m.isProcessing = false
 		m.showSuccess = true
