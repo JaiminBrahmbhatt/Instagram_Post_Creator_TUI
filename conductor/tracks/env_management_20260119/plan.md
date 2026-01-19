@@ -15,7 +15,7 @@ Rename the menu item and prepare the database/configuration layer to support new
     - [ ] Ensure `DRY_RUN` and `PUBLIC_URL_PREFIX` can be loaded from the `db.Settings` table, falling back to `os.Getenv`.
     - [ ] Create helper methods in `db/settings.go` if needed to get boolean/string settings with defaults.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Foundation & Renaming' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Foundation & Renaming' (Protocol in workflow.md) <!-- id: 2 --> [checkpoint: 3982016]
 
 ## Phase 2: UI Implementation
 Expand the Settings form to include the new fields.
