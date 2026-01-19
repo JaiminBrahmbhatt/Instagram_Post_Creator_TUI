@@ -43,14 +43,14 @@ func NewFilePicker() filepicker.Model {
 
 func NewMenu() list.Model {
 	items := []list.Item{
-		item{title: "Dashboard", desc: "View limits and engagement"},
-		item{title: "Media Browser", desc: "Select photos for carousel"},
-		item{title: "Scheduled Posts", desc: "Manage your queue"},
-		item{title: "Settings", desc: "Configure app settings"},
+		item{title: "📊 Dashboard", desc: "View limits and engagement"},
+		item{title: "📁 Media Browser", desc: "Select photos for carousel"},
+		item{title: "📅 Scheduled Posts", desc: "Manage your queue"},
+		item{title: "⚙️  Settings", desc: "Configure app settings"},
 	}
 
 	l := list.New(items, NewCustomDelegate(), 0, 0)
-	l.Title = "Insta Auto-Post"
+	l.Title = "" // Handled by App Shell
 	l.SetShowStatusBar(false)
 	l.Styles.Title = TitleStyle
 	l.Styles.PaginationStyle = PaginationStyle
@@ -104,12 +104,12 @@ func getTableStyles() table.Styles {
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("#3C3836")).
+		BorderForeground(Theme.Subtle).
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
-		Foreground(lipgloss.Color("#FBF1C7")).
-		Background(lipgloss.Color("#7D56F4")).
+		Foreground(Theme.Background).
+		Background(Theme.Primary).
 		Bold(false)
 	return s
 }
