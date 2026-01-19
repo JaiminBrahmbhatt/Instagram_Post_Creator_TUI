@@ -1,11 +1,12 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -32,38 +33,37 @@ func (c *Client) CreateCarouselContainer(caption string, children []string) (str
 		childrenStr += child
 	}
 
-	req := MediaCreationRequest{
-		Caption:   caption,
-		Children:  childrenStr,
-		MediaType: MediaTypeCarousel,
+	params := map[string]string{
+		"caption":    caption,
+		"children":   childrenStr,
+		"media_type": string(MediaTypeCarousel),
 	}
-	return c.makePostRequest("media", req)
+	return c.makePostRequest("media", params)
 }
 
 func (c *Client) CreateMediaContainer(mediaURL, caption string, mediaType MediaType, isCarouselItem bool) (string, error) {
-	req := MediaCreationRequest{
-		Caption:        caption,
-		MediaType:      mediaType,
-		IsCarouselItem: isCarouselItem,
+	params := map[string]string{
+		"caption":          caption,
+		"media_type":       string(mediaType),
+		"is_carousel_item": strconv.FormatBool(isCarouselItem),
 	}
 
 	if mediaType == MediaTypeVideo {
-		req.VideoURL = mediaURL
+		params["video_url"] = mediaURL
 	} else {
-		req.ImageURL = mediaURL
+		params["image_url"] = mediaURL
 	}
 
-	return c.makePostRequest("media", req)
+	return c.makePostRequest("media", params)
 }
 
 func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/%s/%s?fields=status_code", APIVersion, containerID)
+	url := fmt.Sprintf("https://graph.instagram.com/%s/%s?fields=status_code&access_token=%s", APIVersion, containerID, c.AccessToken)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -84,13 +84,12 @@ func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error)
 }
 
 func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/content_publishing_limit?fields=config,quota_usage", APIVersion, c.IGID)
+	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/content_publishing_limit?fields=config,quota_usage&access_token=%s", APIVersion, c.IGID, c.AccessToken)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -115,10 +114,10 @@ func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
 }
 
 func (c *Client) PublishContainer(containerID string) (string, error) {
-	req := MediaPublishRequest{
-		CreationID: containerID,
+	params := map[string]string{
+		"creation_id": containerID,
 	}
-	return c.makePostRequest("media_publish", req)
+	return c.makePostRequest("media_publish", params)
 }
 
 func (c *Client) WaitForContainer(containerID string) error {
@@ -147,23 +146,28 @@ func (c *Client) WaitForContainer(containerID string) error {
 	}
 }
 
-// makePostRequest handles the common logic for Instagram Graph API POST requests
-func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/%s", APIVersion, c.IGID, endpoint)
+// makePostRequest handles the common logic for Instagram Graph API POST requests using query parameters
+func (c *Client) makePostRequest(endpoint string, params map[string]string) (string, error) {
+	baseURL := fmt.Sprintf("https://graph.instagram.com/%s/%s/%s", APIVersion, c.IGID, endpoint)
 	
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal payload: %w", err)
+	values := url.Values{}
+	for k, v := range params {
+		if v != "" {
+			values.Add(k, v)
+		}
 	}
-	
-	log.Printf("API Request: POST %s Payload: %s", url, string(data))
+	// Always add access token if not present
+	if values.Get("access_token") == "" {
+		values.Add("access_token", c.AccessToken)
+	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	fullURL := baseURL + "?" + values.Encode()
+	log.Printf("API Request: POST %s (params hidden)", baseURL)
+
+	req, err := http.NewRequest("POST", fullURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -171,7 +175,7 @@ func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	// Decode into a map first to check for error field
+	// Decode response
 	var raw map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&raw); err != nil {
 		return "", fmt.Errorf("failed to decode response: %v", err)
