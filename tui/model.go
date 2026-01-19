@@ -222,7 +222,7 @@ func (m Model) View() string {
 			lipgloss.JoinVertical(lipgloss.Center,
 				LoadingStyle.Render(spinner+"  "+m.currentStatus),
 				"\n",
-				lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("Hold tight, we're uploading to Instagram"),
+				lipgloss.NewStyle().Foreground(lipgloss.Color("#3C3836")).Render("Hold tight, we're uploading to Instagram"),
 			),
 		)
 
@@ -264,7 +264,7 @@ func (m Model) View() string {
 			lipgloss.JoinVertical(lipgloss.Center,
 				LoadingStyle.Render(icon+"  "+m.lastResult),
 				"\n",
-				lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("Press any key to continue"),
+				lipgloss.NewStyle().Foreground(lipgloss.Color("#3C3836")).Render("Press any key to continue"),
 			),
 		)
 		content = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, successCard)

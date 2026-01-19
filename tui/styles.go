@@ -10,9 +10,9 @@ var (
 	ColorPrimary   = lipgloss.Color("#7D56F4")
 	ColorSecondary = lipgloss.Color("#FAFAFA")
 	ColorDarkGray  = lipgloss.Color("#353533")
-	ColorError     = lipgloss.Color("202")
-	ColorSuccess   = lipgloss.Color("205")
-	ColorAccent    = lipgloss.Color("212")
+	ColorError     = lipgloss.Color("#FF7644")
+	ColorSuccess   = lipgloss.Color("#22C55E")
+	ColorAccent    = lipgloss.Color("#EE6FF8")
 
 	// Base Styles
 	TitleStyle = lipgloss.NewStyle().
@@ -62,7 +62,7 @@ var (
 			Height(8)
 
 	LogEntryStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("246")).
+			Foreground(lipgloss.Color("#949494")).
 			Italic(true)
 
 	SuccessBoxStyle = lipgloss.NewStyle().
