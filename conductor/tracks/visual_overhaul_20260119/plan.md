@@ -21,7 +21,7 @@ Establish the core visual language (colors, typography, spacing) and refactor th
     - [ ] Ensure the main content area has appropriate padding and centering.
     - [ ] Update `tui/rendering.go` to utilize the new layout structure.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Design System & Foundation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Design System & Foundation' (Protocol in workflow.md) <!-- id: 2 --> [checkpoint: df58cdd]
 
 ## Phase 2: Component Modernization
 Update specific views and components to align with the new design system.
