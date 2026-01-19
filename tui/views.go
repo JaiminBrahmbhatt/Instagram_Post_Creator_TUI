@@ -139,7 +139,8 @@ func (m *Model) viewSettingsDir() string {
 func (m *Model) viewSettingsAuth() string {
 	var b strings.Builder
 	b.WriteString(TitleStyle.Render("Environment Configuration") + "\n\n")
-	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Keys are stored in Keychain, other settings in local database.") + "\n\n")
+	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Keys are stored in Keychain, other settings in local database.") + "\n")
+	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Changes apply immediately to the next operation.") + "\n\n")
 
 	labels := []string{
 		"Instagram Access Token",
