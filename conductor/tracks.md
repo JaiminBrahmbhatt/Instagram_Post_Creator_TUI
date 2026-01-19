@@ -4,3 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
+- [~] **Track: Enhanced Environment & Settings Management**
+  *Link: [./conductor/tracks/env_management_20260119/](./conductor/tracks/env_management_20260119/)*
