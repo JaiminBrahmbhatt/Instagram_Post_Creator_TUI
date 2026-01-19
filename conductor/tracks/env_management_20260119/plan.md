@@ -36,7 +36,7 @@ Expand the Settings form to include the new fields.
         - [x] Save `PUBLIC_URL_PREFIX` and `DRY_RUN` to the SQLite `settings` table on Enter/Save.
         - [x] Continue saving Secrets to Keyring as before.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: UI Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: UI Implementation' (Protocol in workflow.md) <!-- id: 6 --> [checkpoint: e2f41d2]
 
 ## Phase 3: Verification & Cleanup
 Ensure the application actually uses the new settings.
