@@ -418,9 +418,14 @@ func (m Model) View() string {
 
 	// Default help menu
 	if m.showFullHelp {
-		footer += helpStyle.Render("enter: select • c: continue • d: draft • esc: back • q: quit • ?: back")
+		footer += helpStyle.Render("enter: select • c: continue • d: draft • esc/q: back • ?: back")
 	} else {
-		footer += helpStyle.Render("↑/k up • ↓/j down • / filter • q quit • ? more")
+		keys := "↑/k up • ↓/j down • / filter • q quit"
+		if m.currentView == "browser" && len(m.selectedMedia) > 0 {
+			keys += " • c continue"
+		}
+		keys += " • ? more"
+		footer += helpStyle.Render(keys)
 	}
 
 	if m.statusMsg != "" {
