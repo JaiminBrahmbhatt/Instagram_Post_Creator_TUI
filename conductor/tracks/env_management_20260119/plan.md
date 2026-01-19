@@ -20,21 +20,21 @@ Rename the menu item and prepare the database/configuration layer to support new
 ## Phase 2: UI Implementation
 Expand the Settings form to include the new fields.
 
-- [ ] Task: Expand Settings Model
-    - [ ] Update `NewAuthInputs` in `tui/components.go` (or create `NewEnvInputs`) to include:
-        - [ ] Public URL Prefix (Text)
-        - [ ] Dry Run (Text/Toggle - use "true"/"false" text for simplicity initially)
-    - [ ] Update `tui/model.go` to hold these new inputs.
+- [x] Task: Expand Settings Model <!-- id: 3 --> [d92c040]
+    - [x] Update `NewAuthInputs` in `tui/components.go` (or create `NewEnvInputs`) to include:
+        - [x] Public URL Prefix (Text)
+        - [x] Dry Run (Text/Toggle - use "true"/"false" text for simplicity initially)
+    - [x] Update `tui/model.go` to hold these new inputs.
 
-- [ ] Task: Update Settings View
-    - [ ] Modify `viewSettingsAuth` (rename to `viewSettingsEnv`?) in `tui/views.go` to render the expanded list of inputs.
-    - [ ] Ensure the layout handles the increased number of fields gracefully (scrolling or just fitting).
+- [x] Task: Update Settings View <!-- id: 4 --> [d92c040]
+    - [x] Modify `viewSettingsAuth` (rename to `viewSettingsEnv`?) in `tui/views.go` to render the expanded list of inputs.
+    - [x] Ensure the layout handles the increased number of fields gracefully (scrolling or just fitting).
 
-- [ ] Task: Update Save Logic
-    - [ ] Modify `tui/settings_handlers.go` (`updateSettingsAuthView`) to:
-        - [ ] Load initial values from DB/Env when entering the view.
-        - [ ] Save `PUBLIC_URL_PREFIX` and `DRY_RUN` to the SQLite `settings` table on Enter/Save.
-        - [ ] Continue saving Secrets to Keyring as before.
+- [x] Task: Update Save Logic <!-- id: 5 --> [d92c040]
+    - [x] Modify `tui/settings_handlers.go` (`updateSettingsAuthView`) to:
+        - [x] Load initial values from DB/Env when entering the view.
+        - [x] Save `PUBLIC_URL_PREFIX` and `DRY_RUN` to the SQLite `settings` table on Enter/Save.
+        - [x] Continue saving Secrets to Keyring as before.
 
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: UI Implementation' (Protocol in workflow.md)
 
