@@ -5,7 +5,7 @@ This plan outlines the steps to modernize the TUI, focusing on a cleaner, "Claud
 ## Phase 1: Design System & Foundation
 Establish the core visual language (colors, typography, spacing) and refactor the global layout structure.
 
-- [ ] Task: Audit and Refactor `tui/styles.go`
+- [x] Task: Audit and Refactor `tui/styles.go` <!-- id: 0 --> [f2a5905]
     - [ ] Analyze existing styles in `tui/styles.go`.
     - [ ] Define a new, modern color palette (primary, secondary, subtle, error, success) in a dedicated theme struct or constant block.
     - [ ] Create standardized Lipgloss styles for:
