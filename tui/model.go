@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -43,7 +44,7 @@ func (i item) FilterValue() string { return i.title }
 type Model struct {
 	db            *db.Database
 	list          list.Model
-	browserList   list.Model
+	fp            filepicker.Model
 	input         textinput.Model
 	currentView   string
 	selectedMedia []string
@@ -70,14 +71,14 @@ func InitialModel(database *db.Database) Model {
 	l := list.New(menuItems, list.NewDefaultDelegate(), 0, 0)
 	l.Title = "Insta Auto-Post"
 
-	// Browser list
-	bl := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	bl.Title = "Select Media (Space/Enter to toggle, 'c' to continue)"
+	fp := filepicker.New()
+	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png"}
+	fp.CurrentDirectory, _ = os.Getwd()
 
 	m := Model{
 		db:          database,
 		list:        l,
-		browserList: bl,
+		fp:          fp,
 		input:       ti,
 		currentView: "menu",
 	}
@@ -87,10 +88,11 @@ func InitialModel(database *db.Database) Model {
 	if dir == "" {
 		m.currentView = "setup"
 		m.setupStep = 0
-		m.input.Placeholder = "Enter photos directory path (or leave empty for ./photos)..."
-		m.input.Focus()
+		m.fp.DirAllowed = true
+		m.fp.FileAllowed = false
 	} else {
 		m.photosDir = dir
+		m.fp.CurrentDirectory = dir
 		database.RunCleanup()
 		m.checkMediaCount()
 	}
@@ -107,7 +109,7 @@ func (m *Model) checkMediaCount() {
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	return m.fp.Init()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -129,19 +131,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch m.currentView {
 			case "setup":
 				if m.setupStep == 0 {
-					dir := m.input.Value()
-					if dir == "" {
-						dir = "photos"
-					}
-					// Create directory if it doesn't exist
-					if _, err := os.Stat(dir); os.IsNotExist(err) {
-						os.MkdirAll(dir, 0755)
-					}
-					m.photosDir = dir
-					m.db.SetSetting("photos_dir", dir)
-					m.setupStep = 1
-					m.input.Blur()
-					return m, nil
+					// We'll check selection after the model update
 				}
 			case "menu":
 				it := m.list.SelectedItem()
@@ -158,19 +148,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 					m.currentView = "browser"
-					return m, m.loadMediaCmd()
+					m.fp.DirAllowed = false
+					m.fp.FileAllowed = true
+					return m, nil
 				case "Scheduled Posts":
 					m.currentView = "scheduler"
 				}
 			case "browser":
-				items := m.browserList.Items()
-				if len(items) == 0 {
-					return m, nil
-				}
-				idx := m.browserList.Index()
-				it := items[idx].(item)
-				it.selected = !it.selected
-				m.browserList.SetItem(idx, it)
+				// We'll check selection after the model update
 			case "composer":
 				m.caption = m.input.Value()
 				_, err := m.db.SavePost(m.caption, m.selectedMedia, "")
@@ -178,6 +163,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.statusMsg = "Error saving post: " + err.Error()
 				} else {
 					m.statusMsg = "Post saved as draft!"
+					m.selectedMedia = nil // Clear selection after saving
 				}
 				m.currentView = "menu"
 			}
@@ -197,25 +183,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case " ":
 			if m.currentView == "browser" {
-				items := m.browserList.Items()
-				if len(items) == 0 {
-					return m, nil
-				}
-				idx := m.browserList.Index()
-				it := items[idx].(item)
-				it.selected = !it.selected
-				m.browserList.SetItem(idx, it)
+				// We don't use space for selection here as filepicker uses Enter,
+				// but we could use it to toggle if we wanted to build custom logic.
 			}
 		case "c":
 			if m.currentView == "browser" {
-				var selected []string
-				for _, i := range m.browserList.Items() {
-					if it, ok := i.(item); ok && it.selected {
-						selected = append(selected, it.path)
-					}
-				}
-				if len(selected) > 0 {
-					m.selectedMedia = selected
+				if len(m.selectedMedia) > 0 {
 					m.currentView = "composer"
 					m.input.Focus()
 				}
@@ -224,9 +197,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
 		m.list.SetSize(msg.Width-h, msg.Height-v)
-		m.browserList.SetSize(msg.Width-h, msg.Height-v)
-	case mediaLoadedMsg:
-		m.browserList.SetItems(msg)
+		m.fp.SetHeight(msg.Height - v - 10) // Leave space for status
 	}
 
 	var cmd tea.Cmd
@@ -234,8 +205,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case "menu":
 		m.list, cmd = m.list.Update(msg)
 	case "browser":
-		m.browserList, cmd = m.browserList.Update(msg)
-	case "composer", "setup":
+		m.fp, cmd = m.fp.Update(msg)
+		if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
+			idx := -1
+			for i, s := range m.selectedMedia {
+				if s == path {
+					idx = i
+					break
+				}
+			}
+			if idx >= 0 {
+				// Remove from selection
+				m.selectedMedia = append(m.selectedMedia[:idx], m.selectedMedia[idx+1:]...)
+				m.statusMsg = fmt.Sprintf("Removed: %s", filepath.Base(path))
+			} else {
+				// Add to selection
+				m.selectedMedia = append(m.selectedMedia, path)
+				m.statusMsg = fmt.Sprintf("Added: %s", filepath.Base(path))
+			}
+		}
+	case "setup":
+		if m.setupStep == 0 {
+			m.fp, cmd = m.fp.Update(msg)
+			if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
+				m.photosDir = path
+				m.db.SetSetting("photos_dir", path)
+				m.setupStep = 1
+				m.fp.DirAllowed = false
+				m.fp.FileAllowed = true
+			}
+		} else {
+			m.input, cmd = m.input.Update(msg)
+		}
+	case "composer":
 		m.input, cmd = m.input.Update(msg)
 	}
 	return m, cmd
@@ -264,14 +266,26 @@ func (m Model) View() string {
 	case "setup":
 		title := titleStyle.Render("First Time Setup")
 		if m.setupStep == 0 {
-			s = title + "\n\n" + m.input.View() + "\n\n(Enter to confirm, 'q' to quit)"
+			s = title + "\n\nPick a directory for your photos:\n\n" + m.fp.View() + "\n\n(Enter to select, 'q' to quit)"
 		} else {
 			s = title + "\n\nAuto Cleanup\n\nWould you like to automatically remove photos after 30 days if they have been posted?\n\n(y/n)"
 		}
 	case "dashboard":
 		s = "Dashboard View (Work in Progress)\n\nPress 'q' to go back."
 	case "browser":
-		s = m.browserList.View()
+		s = "Select Media (Enter to add to selection, 'c' to continue, 'q' to menu)\n\n"
+		if len(m.selectedMedia) > 0 {
+			s += fmt.Sprintf("Selected (%d): ", len(m.selectedMedia))
+			var names []string
+			for _, p := range m.selectedMedia {
+				names = append(names, filepath.Base(p))
+			}
+			s += strings.Join(names, ", ") + "\n\n"
+		}
+		s += m.fp.View()
+		if m.statusMsg != "" {
+			s += "\n\n" + m.statusMsg
+		}
 	case "composer":
 		s = fmt.Sprintf(
 			"Composer\n\nSelected: %d files\n\n%s\n\n(Enter to save draft, 'q' to cancel)",
@@ -287,27 +301,4 @@ func (m Model) View() string {
 		}
 	}
 	return docStyle.Render(s)
-}
-
-type mediaLoadedMsg []list.Item
-
-func (m Model) loadMediaCmd() tea.Cmd {
-	return func() tea.Msg {
-		files, _ := os.ReadDir(m.photosDir)
-		var items []list.Item
-		for _, f := range files {
-			if !f.IsDir() {
-				ext := strings.ToLower(filepath.Ext(f.Name()))
-				if ext == ".jpg" || ext == ".jpeg" || ext == ".png" {
-					fullPath := filepath.Join(m.photosDir, f.Name())
-					items = append(items, item{
-						title: f.Name(),
-						desc:  "Unposted",
-						path:  fullPath,
-					})
-				}
-			}
-		}
-		return mediaLoadedMsg(items)
-	}
 }
