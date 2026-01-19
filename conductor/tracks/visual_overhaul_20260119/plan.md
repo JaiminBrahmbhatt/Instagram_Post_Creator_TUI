@@ -37,7 +37,7 @@ Update specific views and components to align with the new design system.
     - [ ] Improve the visual feedback for selected items (e.g., checkbox icon or distinct color change).
     - [ ] Update the file picker integration to match the new aesthetic.
 
-- [ ] Task: Refine Post Composer
+- [x] Task: Refine Post Composer <!-- id: 5 --> [69d766b]
     - [ ] Update `viewComposer` in `tui/views.go`.
     - [ ] Style the text input (`NewCaptionInput`) to feel more like a modern editor (borders, focus state).
     - [ ] Improve the layout of the "Selected Media" summary in the composer.
