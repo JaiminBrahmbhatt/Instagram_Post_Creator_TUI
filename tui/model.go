@@ -8,6 +8,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -55,6 +56,7 @@ type Model struct {
 	showLimitWarn bool
 	setupStep     int // 0: dir, 1: cleanup
 	mediaCount    int
+	table         table.Model
 }
 
 func InitialModel(database *db.Database) Model {
@@ -72,14 +74,41 @@ func InitialModel(database *db.Database) Model {
 	l.Title = "Insta Auto-Post"
 
 	fp := filepicker.New()
-	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png"}
+	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
 	fp.CurrentDirectory, _ = os.Getwd()
+	fp.Height = 20
+
+	columns := []table.Column{
+		{Title: "ID", Width: 4},
+		{Title: "Status", Width: 10},
+		{Title: "Scheduled At", Width: 20},
+		{Title: "Media", Width: 5},
+		{Title: "Caption", Width: 40},
+	}
+	t := table.New(
+		table.WithColumns(columns),
+		table.WithFocused(true),
+		table.WithHeight(10),
+	)
+
+	s := table.DefaultStyles()
+	s.Header = s.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(false)
+	s.Selected = s.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(false)
+	t.SetStyles(s)
 
 	m := Model{
 		db:          database,
 		list:        l,
 		fp:          fp,
 		input:       ti,
+		table:       t,
 		currentView: "menu",
 	}
 
@@ -91,8 +120,13 @@ func InitialModel(database *db.Database) Model {
 		m.fp.DirAllowed = true
 		m.fp.FileAllowed = false
 	} else {
-		m.photosDir = dir
-		m.fp.CurrentDirectory = dir
+		// Ensure absolute path
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			absDir = dir
+		}
+		m.photosDir = absDir
+		m.fp.CurrentDirectory = absDir
 		database.RunCleanup()
 		m.checkMediaCount()
 	}
@@ -106,6 +140,21 @@ func (m *Model) checkMediaCount() {
 	if count >= 1000 {
 		m.showLimitWarn = true
 	}
+}
+
+func (m *Model) refreshTable() {
+	posts, _ := m.db.GetPosts()
+	var rows []table.Row
+	for _, p := range posts {
+		rows = append(rows, table.Row{
+			fmt.Sprintf("%d", p.ID),
+			strings.ToUpper(p.Status),
+			p.ScheduledAt,
+			fmt.Sprintf("%d", p.MediaCount),
+			p.Caption,
+		})
+	}
+	m.table.SetRows(rows)
 }
 
 func (m Model) Init() tea.Cmd {
@@ -148,22 +197,38 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 					m.currentView = "browser"
-					m.fp.DirAllowed = false
+					m.fp.DirAllowed = true
 					m.fp.FileAllowed = true
-					return m, nil
+					m.fp.CurrentDirectory = m.photosDir
+					m.statusMsg = fmt.Sprintf("Browsing: %s", m.photosDir)
+					return m, m.fp.Init()
 				case "Scheduled Posts":
+					m.refreshTable()
 					m.currentView = "scheduler"
 				}
 			case "browser":
 				// We'll check selection after the model update
 			case "composer":
 				m.caption = m.input.Value()
-				_, err := m.db.SavePost(m.caption, m.selectedMedia, "")
+				// Default to scheduled for now (+0 minutes)
+				_, err := m.db.SavePost(m.caption, m.selectedMedia, "+0 minutes", "scheduled")
+				if err != nil {
+					m.statusMsg = "Error saving post: " + err.Error()
+				} else {
+					m.statusMsg = "Post scheduled for now!"
+					m.selectedMedia = nil // Clear selection after saving
+				}
+				m.currentView = "menu"
+			}
+		case "d":
+			if m.currentView == "composer" {
+				m.caption = m.input.Value()
+				_, err := m.db.SavePost(m.caption, m.selectedMedia, "", "draft")
 				if err != nil {
 					m.statusMsg = "Error saving post: " + err.Error()
 				} else {
 					m.statusMsg = "Post saved as draft!"
-					m.selectedMedia = nil // Clear selection after saving
+					m.selectedMedia = nil
 				}
 				m.currentView = "menu"
 			}
@@ -228,17 +293,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.setupStep == 0 {
 			m.fp, cmd = m.fp.Update(msg)
 			if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
-				m.photosDir = path
-				m.db.SetSetting("photos_dir", path)
+				absPath, _ := filepath.Abs(path)
+				m.photosDir = absPath
+				m.db.SetSetting("photos_dir", absPath)
 				m.setupStep = 1
 				m.fp.DirAllowed = false
 				m.fp.FileAllowed = true
+				m.fp.CurrentDirectory = absPath
 			}
 		} else {
 			m.input, cmd = m.input.Update(msg)
 		}
 	case "composer":
 		m.input, cmd = m.input.Update(msg)
+	case "scheduler":
+		m.table, cmd = m.table.Update(msg)
 	}
 	return m, cmd
 }
@@ -288,12 +357,12 @@ func (m Model) View() string {
 		}
 	case "composer":
 		s = fmt.Sprintf(
-			"Composer\n\nSelected: %d files\n\n%s\n\n(Enter to save draft, 'q' to cancel)",
+			"Composer\n\nSelected: %d files\n\n%s\n\n(Enter to schedule NOW, 'd' to save draft, 'q' to cancel)",
 			len(m.selectedMedia),
 			m.input.View(),
 		)
 	case "scheduler":
-		s = "Scheduled Posts (Work in Progress)\n\nPress 'q' to go back."
+		s = "Scheduled Posts & History\n\n" + m.table.View() + "\n\nPress 'q' for menu"
 	default:
 		s = m.list.View()
 		if m.statusMsg != "" {

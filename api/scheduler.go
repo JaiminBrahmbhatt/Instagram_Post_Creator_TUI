@@ -1,8 +1,9 @@
 package api
 
 import (
-	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/jaiminb/insta-auto-post/db"
@@ -54,6 +55,16 @@ func (s *Scheduler) CheckAndPublish() {
 }
 
 func (s *Scheduler) PublishPost(postID int64, caption string) {
+	dryRun := os.Getenv("DRY_RUN") == "true"
+	urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
+	if urlPrefix == "" {
+		urlPrefix = "https://example.com/" // Fallback
+	}
+
+	if dryRun {
+		log.Printf("[DRY RUN] Publishing post %d with caption: %s", postID, caption)
+	}
+
 	// 1. Get media for post
 	rows, err := s.DB.Conn.Query(`
 		SELECT m.path FROM media m
@@ -74,37 +85,49 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		mediaPaths = append(mediaPaths, path)
 	}
 
-	// 2. Create item containers
-	var itemIDs []string
-	for _, path := range mediaPaths {
-		// IMPORTANT: This requires the path to be a public URL.
-		// For personal usage, we'll assume the user has a way to serve these
-		// or we'll need to upload them to a temporary host.
-		// For now, we'll log where the URL would go.
-		publicURL := fmt.Sprintf("https://your-public-host.com/%s", path)
-		id, err := s.Client.CreateMediaContainer(publicURL, true)
+	var carouselID string
+
+	if dryRun {
+		log.Printf("[DRY RUN] Would upload %d files to %s", len(mediaPaths), urlPrefix)
+		carouselID = "DRY_RUN_ID"
+	} else {
+		// 2. Create item containers
+		var itemIDs []string
+		for _, path := range mediaPaths {
+			// For personal usage, we'll assume the user has a way to serve these
+			// or we'll need to upload them to a temporary host.
+			publicURL := urlPrefix + filepath.Base(path)
+			id, err := s.Client.CreateMediaContainer(publicURL, true)
+			if err != nil {
+				log.Printf("Failed to create container for %s: %v", path, err)
+				return
+			}
+			itemIDs = append(itemIDs, id)
+		}
+
+		// 3. Create Carousel container
+		id, err := s.Client.CreateCarouselContainer(caption, itemIDs)
 		if err != nil {
-			log.Printf("Failed to create container for %s: %v", path, err)
+			log.Printf("Failed to create carousel: %v", err)
 			return
 		}
-		itemIDs = append(itemIDs, id)
-	}
+		carouselID = id
 
-	// 3. Create Carousel container
-	carouselID, err := s.Client.CreateCarouselContainer(caption, itemIDs)
-	if err != nil {
-		log.Printf("Failed to create carousel: %v", err)
-		return
-	}
-
-	// 4. Publish
-	_, err = s.Client.PublishContainer(carouselID)
-	if err != nil {
-		log.Printf("Failed to publish carousel: %v", err)
-		return
+		// 4. Publish
+		_, err = s.Client.PublishContainer(carouselID)
+		if err != nil {
+			log.Printf("Failed to publish carousel: %v", err)
+			return
+		}
 	}
 
 	// 5. Update status
 	s.DB.Conn.Exec("UPDATE posts SET status = 'published', published_at = CURRENT_TIMESTAMP WHERE id = ?", postID)
 	s.DB.Conn.Exec("UPDATE media SET is_posted = 1 WHERE id IN (SELECT media_id FROM post_media WHERE post_id = ?)", postID)
+
+	if dryRun {
+		log.Printf("[DRY RUN] Post %d marked as published", postID)
+	} else {
+		log.Printf("Successfully published post %d", postID)
+	}
 }

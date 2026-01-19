@@ -150,14 +150,18 @@ func (db *Database) GetUnpostedMedia() ([]string, error) {
 	return paths, nil
 }
 
-func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string) (int64, error) {
+func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string, status string) (int64, error) {
 	tx, err := db.Conn.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
 
-	res, err := tx.Exec("INSERT INTO posts (caption, scheduled_at, status) VALUES (?, ?, 'draft')", caption, scheduledAt)
+	if scheduledAt == "" {
+		scheduledAt = "NULL"
+	}
+
+	res, err := tx.Exec("INSERT INTO posts (caption, scheduled_at, status) VALUES (?, datetime('now', ?), ?)", caption, scheduledAt, status)
 	if err != nil {
 		return 0, err
 	}
@@ -188,4 +192,36 @@ func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt st
 	}
 
 	return postID, tx.Commit()
+}
+
+type Post struct {
+	ID          int64
+	Caption     string
+	ScheduledAt string
+	Status      string
+	MediaCount  int
+}
+
+func (db *Database) GetPosts() ([]Post, error) {
+	rows, err := db.Conn.Query(`
+		SELECT p.id, p.caption, COALESCE(p.scheduled_at, ''), p.status, COUNT(pm.media_id)
+		FROM posts p
+		LEFT JOIN post_media pm ON p.id = pm.post_id
+		GROUP BY p.id
+		ORDER BY p.scheduled_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt, &p.Status, &p.MediaCount); err != nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
+	return posts, nil
 }
