@@ -1,5 +1,5 @@
-/insta-auto-post
-insta_auto_post.db
+/post-creator
+post_creator.db
 .DS_Store
 /photos
 .env

@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jaiminb/insta-auto-post/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 func (m *Model) updateSettingsDirView(msg tea.Msg) tea.Cmd {

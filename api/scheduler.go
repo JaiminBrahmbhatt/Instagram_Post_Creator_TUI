@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/jaiminb/insta-auto-post/db"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 type Scheduler struct {

@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/tui"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jaiminb/insta-auto-post/api"
-	"github.com/jaiminb/insta-auto-post/db"
-	"github.com/jaiminb/insta-auto-post/tui"
 	"github.com/joho/godotenv"
 )
 
@@ -31,7 +31,7 @@ func main() {
 	log.SetOutput(f)
 
 	// Initialize DB
-	database, err := db.InitDB("insta_auto_post.db")
+	database, err := db.InitDB("post_creator.db")
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}

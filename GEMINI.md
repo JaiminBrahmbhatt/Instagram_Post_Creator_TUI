@@ -1,13 +1,13 @@
 # Gemini TUI Interaction Guide 🤖
 
-This guide explains how to run, interact with, and test the `insta-auto-post` TUI tool. As a headless agent, you can simulate user interactions using `send_command_input` to verify the logic and flow.
+This guide explains how to run, interact with, and test the `post-creator` TUI tool. As a headless agent, you can simulate user interactions using `send_command_input` to verify the logic and flow.
 
 ## 🚀 How to Run
 
 To start the TUI, use the following command:
 
 ```bash
-go run cmd/insta-auto-post/main.go
+go run cmd/post-creator/main.go
 ```
 
 ## 🎮 Interaction Patterns
@@ -74,7 +74,7 @@ Once setup is complete, you will be at the main menu:
 1. Select 3 photos in the Browser.
 2. Enter a caption "Test Draft".
 3. Press `d`.
-4. Run: `sqlite3 insta_auto_post.db "SELECT status FROM posts WHERE caption='Test Draft'"` -> Should be `draft`.
+4. Run: `sqlite3 post_creator.db "SELECT status FROM posts WHERE caption='Test Draft'"` -> Should be `draft`.
 5. Repeat for "Test Schedule" and press `Enter` -> Should be `scheduled`.
 
 ### Scenario D: Changing Directory via Settings
@@ -83,11 +83,11 @@ Once setup is complete, you will be at the main menu:
 3. Press `s`.
 4. Verify `photos_dir` in `settings` table:
    ```bash
-   sqlite3 insta_auto_post.db "SELECT value FROM settings WHERE key='photos_dir';"
+   sqlite3 post_creator.db "SELECT value FROM settings WHERE key='photos_dir';"
    ```
 
 ## ⚠️ Important Notes
 - **Input Lag**: When using `run_command` and `send_command_input`, wait for the process to process the input.
-- **Database**: The database is `insta_auto_post.db`. You can reset the state by deleting this file.
+- **Database**: The database is `post_creator.db`. You can reset the state by deleting this file.
 - **Logs**: If the TUI crashes, check the terminal output for panic messages.
 

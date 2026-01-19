@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/jaiminb/insta-auto-post/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 func NewBrowserTable() table.Model {

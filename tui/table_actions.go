@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/jaiminb/insta-auto-post/api"
-	"github.com/jaiminb/insta-auto-post/db"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 func (m *Model) enterBrowserDirectory() {

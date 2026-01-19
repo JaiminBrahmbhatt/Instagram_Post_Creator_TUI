@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jaiminb/insta-auto-post/db"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 func (s *Scheduler) PublishPost(postID int64, caption string) {

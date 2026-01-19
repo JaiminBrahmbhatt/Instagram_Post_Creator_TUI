@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	serviceName = "insta-auto-post"
+	serviceName = "instagram-post-creator"
 )
 
 // GetCredential retrieves a credential from environment variables first,

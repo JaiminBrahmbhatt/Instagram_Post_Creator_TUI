@@ -4,8 +4,8 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jaiminb/insta-auto-post/api"
-	"github.com/jaiminb/insta-auto-post/db"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 func (m *Model) handleBackKey() (tea.Model, tea.Cmd) {

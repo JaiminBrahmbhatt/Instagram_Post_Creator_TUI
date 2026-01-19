@@ -2,7 +2,7 @@ package tui
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/jaiminb/insta-auto-post/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 // ViewState definitions
