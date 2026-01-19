@@ -26,12 +26,18 @@ Once setup is complete, you will be at the main menu:
 - **Back to Menu**: Press `q` from any sub-view.
 
 ### 3. Media Browser (The Core Loop)
-- **Select Media**: Navigate with `j`/`k`, then press `Space` or `\n` to toggle selection `[x]`.
+- **Select Media**: Navigate with `j`/`k`, then press `Enter` to toggle selection.
 - **Continue to Composer**: Press `c` once you have selected your photos.
 
 ### 4. Post Composer
 - **Write Caption**: Type your caption text.
-- **Save Draft**: Press `\n` to save the post to the database and return to the main menu.
+- **Schedule Post**: Press `\n` (Enter) to save with status `scheduled` (immediate).
+- **Save Draft**: Press `d` to save with status `draft`.
+
+### 5. Scheduled Posts (Table View)
+- **Navigate Table**: Use `j`/`k` to scroll through the list of posts.
+- **Observe Status**: Verify the status transitions from `SCHEDULED` to `PUBLISHED` (requires background worker running).
+- **Back to Menu**: Press `q`.
 
 ## 🧪 Testing Scenarios
 
