@@ -1,6 +1,6 @@
 package api
 
-const APIVersion = "v24.0"
+const APIVersion = "v19.0"
 
 type MediaType string
 

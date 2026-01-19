@@ -21,19 +21,19 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	// 1. Get media for post
 	mediaPaths, err := s.DB.GetPostMedia(postID)
 	if err != nil {
-		log.Printf("Publish error (post %d): %v", postID, err)
+		s.report("❌ Publish error (post %d): %v", postID, err)
 		s.DB.MarkPostStatus(postID, db.StatusFailed)
 		return
 	}
 
 	if len(mediaPaths) == 0 {
-		log.Printf("Error: No media found for post %d", postID)
+		s.report("❌ Error: No media found for post %d", postID)
 		s.DB.MarkPostStatus(postID, db.StatusFailed)
 		return
 	}
 
 	if len(mediaPaths) > 10 {
-		log.Printf("Error: Post %d has too many media files (%d > 10). Carousel limit is 10.", postID, len(mediaPaths))
+		s.report("❌ Error: Post %d has too many media files (%d > 10).", postID, len(mediaPaths))
 		s.DB.MarkPostStatus(postID, db.StatusFailed)
 		return
 	}
@@ -47,7 +47,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	} else {
 		carouselID, err := s.createContainers(mediaPaths, caption)
 		if err != nil {
-			log.Printf("Failed to create containers: %v", err)
+			s.report("❌ Failed to create containers: %v", err)
 			s.DB.MarkPostStatus(postID, db.StatusFailed)
 			return
 		}
@@ -119,6 +119,11 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 		mType := MediaTypeImage
 		if ext == ".mp4" || ext == ".mov" {
 			mType = MediaTypeVideo
+		}
+
+		// For single posts, omit media_type for images (default)
+		if !isCarousel && mType == MediaTypeImage {
+			mType = ""
 		}
 
 		s.report("  - Uploading %s (%s)", filepath.Base(path), mType)

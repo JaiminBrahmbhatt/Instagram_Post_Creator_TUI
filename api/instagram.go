@@ -150,12 +150,13 @@ func (c *Client) WaitForContainer(containerID string) error {
 // makePostRequest handles the common logic for Instagram Graph API POST requests
 func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
 	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/%s", APIVersion, c.IGID, endpoint)
-	log.Printf("API Request: POST %s", url)
-
+	
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal payload: %w", err)
 	}
+	
+	log.Printf("API Request: POST %s Payload: %s", url, string(data))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	if err != nil {
