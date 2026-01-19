@@ -56,3 +56,23 @@ func TestComposerLayout(t *testing.T) {
 		t.Error("Composer should show file count badge")
 	}
 }
+
+func TestFooterLayout(t *testing.T) {
+	m := Model{
+		browserDir: "/tmp/test",
+		currentView: BrowserView,
+		statusMsg: "Test Status",
+	}
+	// We need to initialize Help because viewFooter calls m.help.View
+	// help.New()
+	
+	output := m.viewFooter()
+	
+	if !strings.Contains(output, "📍 /tmp/test") {
+		t.Error("Footer should show path")
+	}
+	
+	if !strings.Contains(output, "Test Status") {
+		t.Error("Footer should show status message")
+	}
+}

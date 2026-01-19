@@ -77,18 +77,23 @@ func (m *Model) viewDashboard() string {
 }
 
 func (m *Model) viewFooter() string {
-	var footer string
+	var elements []string
 
-	// Path Footer
+	// Path
 	currentPath := m.browserDir
 	if m.currentView == SetupView && m.setupStep == 0 {
 		currentPath = m.fp.CurrentDirectory
 	}
 	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
-		footer += PathStyle.Render("📍 "+currentPath) + "\n"
+		elements = append(elements, PathStyle.Render("📍 "+currentPath))
 	}
 
-	// Help Footer
+	// Status Message
+	if m.statusMsg != "" {
+		elements = append(elements, StatusMsgStyle.Render(m.statusMsg))
+	}
+
+	// Help
 	if m.currentView != MenuView && m.currentView != SettingsView {
 		var km help.KeyMap
 		switch m.currentView {
@@ -107,15 +112,12 @@ func (m *Model) viewFooter() string {
 		}
 
 		if km != nil {
-			footer += "\n" + m.help.View(km)
+			helpView := m.help.View(km)
+			elements = append(elements, lipgloss.NewStyle().MarginTop(1).Render(helpView))
 		}
 	}
 
-	if m.statusMsg != "" {
-		footer += "\n" + StatusMsgStyle.Render(m.statusMsg)
-	}
-
-	return footer
+	return lipgloss.JoinVertical(lipgloss.Left, elements...)
 }
 
 func (m *Model) cleanLogLine(line string) string {

@@ -108,12 +108,14 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(Theme.Primary).
 			Padding(2, 4).
+			Background(Theme.Surface).
 			Align(lipgloss.Center)
 
 	LogBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(Theme.Subtle).
 			Padding(1, 2).
+			Background(Theme.Background).
 			Width(60).
 			Height(8)
 
@@ -125,6 +127,7 @@ var (
 			Border(lipgloss.RoundedBorder()).
 			BorderForeground(Theme.Success).
 			Padding(2, 4).
+			Background(Theme.Surface).
 			Align(lipgloss.Center)
 )
 
