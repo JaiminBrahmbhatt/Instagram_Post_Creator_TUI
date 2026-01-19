@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -19,16 +20,16 @@ import (
 
 var (
 	titleStyle = lipgloss.NewStyle().
-			MarginLeft(2).
 			Foreground(lipgloss.Color("#FAFAFA")).
 			Background(lipgloss.Color("#7D56F4")).
 			Padding(0, 1)
 
 	docStyle = lipgloss.NewStyle().Margin(1, 2)
 
-	selectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+	// List Styles
+	paginationStyle = list.DefaultStyles().PaginationStyle.PaddingLeft(4)
+	helpStyle       = list.DefaultStyles().HelpStyle.PaddingLeft(4).PaddingBottom(1)
 
-	helpStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Margin(1, 0)
 	pathStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("#7D56F4")).
 			Background(lipgloss.Color("#353533")).
@@ -39,15 +40,9 @@ var (
 type item struct {
 	title, desc string
 	path        string
-	selected    bool
 }
 
-func (i item) Title() string {
-	if i.selected {
-		return selectedStyle.Render(fmt.Sprintf("[x] %s", i.title))
-	}
-	return fmt.Sprintf("[ ] %s", i.title)
-}
+func (i item) Title() string       { return i.title }
 func (i item) Description() string { return i.desc }
 func (i item) FilterValue() string { return i.title }
 
@@ -59,6 +54,7 @@ type Model struct {
 	currentView   string
 	selectedMedia []string
 	caption       string
+	// ... other fields remain ...
 	quitting      bool
 	statusMsg     string
 	photosDir     string
@@ -87,8 +83,31 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 	ti := textinput.New()
 	ti.Placeholder = "Write your caption here..."
 
-	l := list.New(menuItems, list.NewDefaultDelegate(), 0, 0)
+	// Setup Fancy List
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(lipgloss.Color("#7D56F4")).
+		Foreground(lipgloss.Color("#7D56F4")).
+		PaddingLeft(2)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(lipgloss.Color("#7D56F4")).
+		Foreground(lipgloss.Color("#7D56F4")).
+		PaddingLeft(2)
+
+	l := list.New(menuItems, delegate, 0, 0)
 	l.Title = "Insta Auto-Post"
+	l.SetShowStatusBar(false)
+	l.Styles.Title = titleStyle
+	l.Styles.PaginationStyle = paginationStyle
+	l.Styles.HelpStyle = helpStyle
+	l.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+			key.NewBinding(key.WithKeys("q"), key.WithHelp("q", "quit")),
+		}
+	}
 
 	fp := filepicker.New()
 	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
@@ -137,9 +156,16 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 		item{title: "Change Photos Directory", desc: "Set the root folder for media browsing"},
 		item{title: "Auto Cleanup", desc: "Toggle 30-day post cleanup"},
 	}
-	sl := list.New(settingsMenuItems, list.NewDefaultDelegate(), 0, 0)
+	sl := list.New(settingsMenuItems, delegate, 0, 0)
 	sl.Title = "Settings"
-	sl.SetShowHelp(false)
+	sl.SetShowHelp(true)
+	sl.Styles.Title = titleStyle
+	sl.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "select")),
+			key.NewBinding(key.WithKeys("esc"), key.WithHelp("esc", "back")),
+		}
+	}
 
 	m := Model{
 		db:           database,
@@ -490,12 +516,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		h, v := docStyle.GetFrameSize()
-		// Account for path (1) + help (1) + status (1) + margins/padding (~4)
-		footerHeight := 6
-		m.list.SetSize(msg.Width-h, msg.Height-v-footerHeight)
-		m.settingsList.SetSize(msg.Width-h, msg.Height-v-footerHeight)
-		m.fp.SetHeight(msg.Height - v - footerHeight - 2)
-		m.table.SetHeight(msg.Height - v - footerHeight - 4)
+		// Determine heights
+		// Wrapper margin/padding + status line (1)
+		baseHeight := msg.Height - v - 1
+
+		// List has built-in help, so give it more space
+		m.list.SetSize(msg.Width-h, baseHeight)
+		m.settingsList.SetSize(msg.Width-h, baseHeight)
+
+		// Others need space for external help footer (~2 lines + status)
+		manualFooterHeight := 4
+		m.fp.SetHeight(msg.Height - v - manualFooterHeight - 2)
+		m.table.SetHeight(msg.Height - v - manualFooterHeight - 4)
 	}
 
 	var cmd tea.Cmd
@@ -619,8 +651,6 @@ func (m Model) View() string {
 	case "scheduler":
 		s = "Scheduled Posts & History (q: back)\n\n" + m.table.View()
 	default: // menu
-		// We use a custom viewer for the list to control the help
-		m.list.SetShowHelp(false)
 		s = m.list.View()
 	}
 
@@ -632,23 +662,25 @@ func (m Model) View() string {
 	if m.currentView == "setup" && m.setupStep == 0 {
 		currentPath = m.fp.CurrentDirectory
 	}
-	if currentPath != "" {
+	if currentPath != "" && (m.currentView == "browser" || m.currentView == "settings_dir") {
 		footer += pathStyle.Render("📍 "+currentPath) + "\n"
 	}
 
-	// Default help menu
-	if m.showFullHelp {
-		footer += helpStyle.Render("enter: select • c: continue • d: draft • esc/q: back • ?: back")
-	} else {
-		keys := "↑/k up • ↓/j down • / filter • q quit"
-		if m.currentView == "browser" && len(m.selectedMedia) > 0 {
-			keys += " • c continue"
+	// Manual Help Footer (only for views WITHOUT built-in help)
+	if m.currentView != "menu" && m.currentView != "settings" {
+		if m.showFullHelp {
+			footer += helpStyle.Render("enter: select • c: continue • d: draft • esc/q: back • ?: back")
+		} else {
+			keys := "↑/k up • ↓/j down • / filter • q quit"
+			if m.currentView == "browser" && len(m.selectedMedia) > 0 {
+				keys += " • c continue"
+			}
+			if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
+				keys += " • s select"
+			}
+			keys += " • ? more"
+			footer += helpStyle.Render(keys)
 		}
-		if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
-			keys += " • s select"
-		}
-		keys += " • ? more"
-		footer += helpStyle.Render(keys)
 	}
 
 	if m.statusMsg != "" {
