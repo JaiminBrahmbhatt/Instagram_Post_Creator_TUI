@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jaiminb/insta-auto-post/api"
 )
 
 func NewBrowserTable() table.Model {
@@ -34,7 +35,7 @@ func NewCaptionInput() textinput.Model {
 
 func NewFilePicker() filepicker.Model {
 	fp := filepicker.New()
-	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
+	fp.AllowedTypes = api.SupportedExtensions
 	fp.CurrentDirectory, _ = os.Getwd()
 	fp.SetHeight(20)
 	return fp

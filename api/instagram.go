@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type MediaType string
@@ -16,14 +17,53 @@ const (
 	MediaTypeVideo    MediaType = "VIDEO"
 )
 
+// SupportedExtensions defines the file extensions allowed for media upload.
+// This is the source of truth for the entire application.
+// Note: Keep extensions lowercase.
+var SupportedExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov"}
+
+type ContainerStatus string
+
+const (
+	ContainerStatusExpired    ContainerStatus = "EXPIRED"
+	ContainerStatusError      ContainerStatus = "ERROR"
+	ContainerStatusFinished   ContainerStatus = "FINISHED"
+	ContainerStatusInProgress ContainerStatus = "IN_PROGRESS"
+	ContainerStatusPublished  ContainerStatus = "PUBLISHED"
+)
+
 type Client struct {
 	AccessToken string
 	HTTPClient  *http.Client
 	IGID        string
 }
 
+// Request Types
+
+type MediaCreationRequest struct {
+	AccessToken    string    `json:"access_token"`
+	Caption        string    `json:"caption,omitempty"`
+	MediaType      MediaType `json:"media_type,omitempty"`
+	ImageURL       string    `json:"image_url,omitempty"`
+	VideoURL       string    `json:"video_url,omitempty"`
+	IsCarouselItem bool      `json:"is_carousel_item,omitempty"`
+	Children       string    `json:"children,omitempty"` // Comma-separated list of IDs
+}
+
+type MediaPublishRequest struct {
+	AccessToken string `json:"access_token"`
+	CreationID  string `json:"creation_id"`
+}
+
+// Response Types
+
 type ContainerResponse struct {
 	ID string `json:"id"`
+}
+
+type ContainerStatusResponse struct {
+	ID         string          `json:"id"`
+	StatusCode ContainerStatus `json:"status_code"` // FINISHED, IN_PROGRESS, ERROR, EXPIRED, PUBLISHED
 }
 
 type LimitResponse struct {
@@ -41,7 +81,7 @@ type PublishingLimit struct {
 func NewClient(accessToken, igID string) *Client {
 	return &Client{
 		AccessToken: accessToken,
-		HTTPClient:  &http.Client{},
+		HTTPClient:  &http.Client{Timeout: 30 * time.Second},
 		IGID:        igID,
 	}
 }
@@ -55,23 +95,43 @@ func (c *Client) CreateCarouselContainer(caption string, children []string) (str
 		childrenStr += child
 	}
 
-	return c.makePostRequest("media", map[string]any{
-		"access_token": c.AccessToken,
-		"caption":      caption,
-		"children":     childrenStr,
-		"media_type":   MediaTypeCarousel,
-	})
+	req := MediaCreationRequest{
+		AccessToken: c.AccessToken,
+		Caption:     caption,
+		Children:    childrenStr,
+		MediaType:   MediaTypeCarousel,
+	}
+	return c.makePostRequest("media", req)
 }
 
 func (c *Client) CreateMediaContainer(imageURL string, isCarouselItem bool) (string, error) {
-	params := map[string]any{
-		"access_token": c.AccessToken,
-		"image_url":    imageURL,
+	req := MediaCreationRequest{
+		AccessToken:    c.AccessToken,
+		ImageURL:       imageURL,
+		IsCarouselItem: isCarouselItem,
 	}
-	if isCarouselItem {
-		params["is_carousel_item"] = true
+	return c.makePostRequest("media", req)
+}
+
+func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error) {
+	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s?fields=status_code&access_token=%s", containerID, c.AccessToken)
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return "", err
 	}
-	return c.makePostRequest("media", params)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("API error: status %d", resp.StatusCode)
+	}
+
+	var res ContainerStatusResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", err
+	}
+
+	return res.StatusCode, nil
 }
 
 func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
@@ -100,17 +160,44 @@ func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
 }
 
 func (c *Client) PublishContainer(containerID string) (string, error) {
-	return c.makePostRequest("media_publish", map[string]any{
-		"access_token": c.AccessToken,
-		"creation_id":  containerID,
-	})
+	req := MediaPublishRequest{
+		AccessToken: c.AccessToken,
+		CreationID:  containerID,
+	}
+	return c.makePostRequest("media_publish", req)
+}
+
+func (c *Client) WaitForContainer(containerID string) error {
+	// Poll for up to 5 minutes
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	timeout := time.After(5 * time.Minute)
+
+	for {
+		select {
+		case <-timeout:
+			return fmt.Errorf("timed out waiting for container %s to be ready", containerID)
+		case <-ticker.C:
+			status, err := c.GetContainerStatus(containerID)
+			if err != nil {
+				return err
+			}
+			if status == ContainerStatusFinished {
+				return nil
+			}
+			if status == ContainerStatusError || status == ContainerStatusExpired {
+				return fmt.Errorf("container %s failed with status: %s", containerID, status)
+			}
+			// IN_PROGRESS, continue waiting
+		}
+	}
 }
 
 // makePostRequest handles the common logic for Instagram Graph API POST requests
-func (c *Client) makePostRequest(endpoint string, params map[string]any) (string, error) {
+func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
 	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/%s", c.IGID, endpoint)
 
-	data, _ := json.Marshal(params)
+	data, _ := json.Marshal(payload)
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
 	req.Header.Set("Content-Type", "application/json")
 

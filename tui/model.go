@@ -262,7 +262,7 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 			}
 			m.currentView = BrowserView
 			m.browserDir = m.photosDir
-			m.fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
+			m.fp.AllowedTypes = api.SupportedExtensions
 			m.refreshBrowserTable()
 		case "Scheduled Posts":
 			m.refreshTable()
@@ -481,7 +481,7 @@ func (m *Model) refreshBrowserTable() {
 				continue
 			}
 			ext := strings.ToLower(filepath.Ext(name))
-			if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+			if !slices.Contains(api.SupportedExtensions, ext) {
 				continue
 			}
 			size = fmt.Sprintf("%.1f KB", float64(info.Size())/1024)
