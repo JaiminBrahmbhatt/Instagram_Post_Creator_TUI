@@ -58,4 +58,4 @@ Focus on the finer details, animations, and status feedback to make the app feel
     - [ ] Verify that all text is legible and has good contrast.
     - [ ] Ensure keyboard navigation remains intuitive and the help footer is accurate for every view.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Polish & Interaction' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Polish & Interaction' (Protocol in workflow.md) <!-- id: 9 --> [checkpoint: aae3949]
