@@ -7,14 +7,27 @@ import (
 	"net/http"
 )
 
+type MediaType string
+
+const (
+	MediaTypeCarousel MediaType = "CAROUSEL"
+	MediaTypeReels    MediaType = "REELS"
+	MediaTypeStories  MediaType = "STORIES"
+	MediaTypeVideo    MediaType = "VIDEO"
+)
+
 type Client struct {
 	AccessToken string
-	IGID        string
 	HTTPClient  *http.Client
+	IGID        string
 }
 
 type ContainerResponse struct {
 	ID string `json:"id"`
+}
+
+type LimitResponse struct {
+	Data []PublishingLimit `json:"data"`
 }
 
 type PublishingLimit struct {
@@ -25,107 +38,40 @@ type PublishingLimit struct {
 	QuotaUsage int `json:"quota_usage"`
 }
 
-type LimitResponse struct {
-	Data []PublishingLimit `json:"data"`
-}
-
 func NewClient(accessToken, igID string) *Client {
 	return &Client{
 		AccessToken: accessToken,
-		IGID:        igID,
 		HTTPClient:  &http.Client{},
+		IGID:        igID,
 	}
 }
 
-func (c *Client) CreateMediaContainer(imageURL string, isCarouselItem bool) (string, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/media", c.IGID)
+func (c *Client) CreateCarouselContainer(caption string, children []string) (string, error) {
+	childrenStr := ""
+	for i, child := range children {
+		if i > 0 {
+			childrenStr += ","
+		}
+		childrenStr += child
+	}
 
-	params := map[string]interface{}{
-		"image_url":    imageURL,
+	return c.makePostRequest("media", map[string]any{
 		"access_token": c.AccessToken,
+		"caption":      caption,
+		"children":     childrenStr,
+		"media_type":   MediaTypeCarousel,
+	})
+}
+
+func (c *Client) CreateMediaContainer(imageURL string, isCarouselItem bool) (string, error) {
+	params := map[string]any{
+		"access_token": c.AccessToken,
+		"image_url":    imageURL,
 	}
 	if isCarouselItem {
 		params["is_carousel_item"] = true
 	}
-
-	data, _ := json.Marshal(params)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var res ContainerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return "", err
-	}
-
-	return res.ID, nil
-}
-
-func (c *Client) CreateCarouselContainer(caption string, children []string) (string, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/media", c.IGID)
-
-	childrenStr := ""
-	for i, child := range children {
-		childrenStr += child
-		if i < len(children)-1 {
-			childrenStr += ","
-		}
-	}
-
-	params := map[string]interface{}{
-		"media_type":   "CAROUSEL",
-		"caption":      caption,
-		"children":     childrenStr,
-		"access_token": c.AccessToken,
-	}
-
-	data, _ := json.Marshal(params)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var res ContainerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return "", err
-	}
-
-	return res.ID, nil
-}
-
-func (c *Client) PublishContainer(containerID string) (string, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/media_publish", c.IGID)
-
-	params := map[string]string{
-		"creation_id":  containerID,
-		"access_token": c.AccessToken,
-	}
-
-	data, _ := json.Marshal(params)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.HTTPClient.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	var res ContainerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return "", err
-	}
-
-	return res.ID, nil
+	return c.makePostRequest("media", params)
 }
 
 func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
@@ -151,4 +97,37 @@ func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
 	}
 
 	return &res.Data[0], nil
+}
+
+func (c *Client) PublishContainer(containerID string) (string, error) {
+	return c.makePostRequest("media_publish", map[string]any{
+		"access_token": c.AccessToken,
+		"creation_id":  containerID,
+	})
+}
+
+// makePostRequest handles the common logic for Instagram Graph API POST requests
+func (c *Client) makePostRequest(endpoint string, params map[string]any) (string, error) {
+	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/%s", c.IGID, endpoint)
+
+	data, _ := json.Marshal(params)
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var res ContainerResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return "", err
+	}
+
+	if res.ID == "" {
+		return "", fmt.Errorf("API request failed (no ID returned)")
+	}
+
+	return res.ID, nil
 }
