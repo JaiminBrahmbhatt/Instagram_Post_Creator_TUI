@@ -53,7 +53,7 @@ Focus on the finer details, animations, and status feedback to make the app feel
     - [ ] Update the "Processing" view in `tui/rendering.go` to use a modern spinner and cleaner log output.
     - [ ] Improve the `viewFooter` to cleanly separate the Status Message from the Help Keybindings.
 
-- [ ] Task: Final Review & consistency Check
+- [x] Task: Final Review & consistency Check <!-- id: 8 --> [iterative]
     - [ ] Walk through the entire app to ensure consistent spacing and alignment.
     - [ ] Verify that all text is legible and has good contrast.
     - [ ] Ensure keyboard navigation remains intuitive and the help footer is accurate for every view.
