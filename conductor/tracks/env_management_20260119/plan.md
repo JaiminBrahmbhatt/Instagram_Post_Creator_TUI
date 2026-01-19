@@ -10,7 +10,7 @@ Rename the menu item and prepare the database/configuration layer to support new
     - [ ] Update `tui/components.go`: Change "Manage API Credentials" to "Environment Configuration".
     - [ ] Verify the menu displays the new name.
 
-- [ ] Task: Update Configuration Logic
+- [x] Task: Update Configuration Logic <!-- id: 1 --> [d594b60]
     - [ ] Review `cmd/post-creator/main.go` and `api/client.go` (or wherever config is loaded).
     - [ ] Ensure `DRY_RUN` and `PUBLIC_URL_PREFIX` can be loaded from the `db.Settings` table, falling back to `os.Getenv`.
     - [ ] Create helper methods in `db/settings.go` if needed to get boolean/string settings with defaults.
