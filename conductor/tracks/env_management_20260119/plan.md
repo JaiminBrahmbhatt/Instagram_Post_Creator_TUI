@@ -47,4 +47,4 @@ Ensure the application actually uses the new settings.
     - [ ] *Correction:* `DRY_RUN` might be checked deeply. We need to ensure dynamic checking or restart requirement.
     - [ ] Add a "Restart Required" note if dynamic update isn't feasible for some settings.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 3: Verification & Cleanup' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Verification & Cleanup' (Protocol in workflow.md) <!-- id: 8 --> [checkpoint: 84ad670]
