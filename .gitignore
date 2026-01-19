@@ -3,5 +3,6 @@ insta_auto_post.db
 .DS_Store
 /photos
 .env
+debug.log
 
 main
