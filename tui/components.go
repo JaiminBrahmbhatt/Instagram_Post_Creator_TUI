@@ -56,10 +56,10 @@ func NewFilePicker() filepicker.Model {
 
 func NewMenu() list.Model {
 	items := []list.Item{
-		item{title: "📊 Dashboard", desc: "View limits and engagement"},
-		item{title: "📁 Media Browser", desc: "Select photos for carousel"},
-		item{title: "📅 Scheduled Posts", desc: "Manage your queue"},
-		item{title: "⚙️  Settings", desc: "Configure app settings"},
+		item{title: MenuTitleDashboard, desc: "View limits and engagement"},
+		item{title: MenuTitleMediaBrowser, desc: "Select photos for carousel"},
+		item{title: MenuTitleScheduledPosts, desc: "Manage your queue"},
+		item{title: MenuTitleSettings, desc: "Configure app settings"},
 	}
 
 	l := list.New(items, NewCustomDelegate(), 0, 0)

@@ -84,12 +84,12 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 		}
 
 		switch selectedItem.title {
-		case "📊 Dashboard":
+		case MenuTitleDashboard:
 			m.currentView = DashboardView
 			if m.client != nil {
 				return fetchQuotaCmd(m.client)
 			}
-		case "📁 Media Browser":
+		case MenuTitleMediaBrowser:
 			m.checkMediaCount()
 			if m.showLimitWarn {
 				return nil
@@ -98,10 +98,10 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 			m.browserDir = m.photosDir
 			m.fp.AllowedTypes = api.SupportedExtensions
 			m.refreshBrowserTable()
-		case "📅 Scheduled Posts":
+		case MenuTitleScheduledPosts:
 			m.refreshTable()
 			m.currentView = SchedulerView
-		case "⚙️  Settings":
+		case MenuTitleSettings:
 			m.currentView = SettingsView
 		}
 	}
