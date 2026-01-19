@@ -1,93 +1,132 @@
-# Gemini TUI Interaction Guide 🤖
+# Project: Instagram Post Creator TUI
 
-This guide explains how to run, interact with, and test the `post-creator` TUI tool. As a headless agent, you can simulate user interactions using `send_command_input` to verify the logic and flow.
+This document provides comprehensive context for the `insta_auto_post` project, serving as a guide for developers and AI agents.
 
-## 🚀 How to Run
+## 1. Project Overview
 
-To start the TUI, use the following command:
+**Name:** Instagram Post Creator TUI (`insta_auto_post`)
+**Purpose:** A terminal-based tool to manage, compose, and schedule Instagram carousel posts using local media files.
+**Tech Stack:**
+- **Language:** Go (1.21+)
+- **TUI Framework:** [Bubble Tea](https://github.com/charmbracelet/bubbletea)
+- **Database:** SQLite
+- **API:** Instagram Graph API (v24.0)
 
+## 2. Architecture
+
+The application is structured into four main layers:
+
+### A. Entry Point (`cmd/post-creator/main.go`)
+- Loads environment variables (`.env`).
+- Initializes the SQLite database.
+- Sets up the Instagram API client.
+- Starts a background **Scheduler** for post processing.
+- Starts a local **HTTP File Server** (port 8080) to expose local photos to the Instagram API (requires a public tunnel like `ngrok` if not in `DRY_RUN`).
+- Launches the **TUI** program.
+
+### B. TUI Layer (`tui/`)
+Follows the Model-View-Update (ELM) architecture:
+- **Model (`model.go`)**: Holds application state (current view, selected media, inputs).
+- **Update (`handlers.go`, `actions.go`)**: Handles key presses and messages (window resize, API responses).
+- **View (`views.go`, `rendering.go`)**: Renders the UI strings based on the current state.
+- **Components (`components.go`)**: Reusable UI parts (tables, lists).
+
+### C. Database Layer (`db/`)
+- Uses `database/sql` with SQLite.
+- **`media.go`**: Manages local file scanning, hashing, and "posted" status.
+- **`posts.go`**: Manages post creation, status updates, and retrieval.
+- **`settings.go`**: Key-value store for user preferences (e.g., `photos_dir`).
+
+### D. API Layer (`api/`)
+- **`instagram.go`**: Client for the Instagram Graph API.
+- **`publisher.go`**: Logic to create media containers and publish them.
+- **`scheduler.go`**: A background routine that polls the database for `scheduled` posts and advances them through the publishing lifecycle (`scheduled` -> `publishing` -> `published`).
+
+## 3. Data Model (SQLite)
+
+### Tables
+- **`media`**: Tracks local image files.
+  - `path`: Unique file path.
+  - `hash`: Content hash to prevent duplicate uploads.
+  - `is_posted`: Boolean flag.
+- **`posts`**: Represents a carousel or single post.
+  - `status`: `draft`, `scheduled`, `publishing`, `published`, `failed`.
+  - `ig_container_id`: Instagram API ID for the container.
+- **`post_media`**: Junction table linking `posts` and `media`.
+  - `display_order`: Order of images in the carousel.
+- **`settings`**: Configuration.
+  - `photos_dir`: Root directory for scanning images.
+
+## 4. Key Workflows
+
+### Post Creation Flow
+1.  **Scan**: User selects a directory. App scans for valid extensions (`.jpg`, `.png`, etc.).
+2.  **Select**: User picks 1-10 images in the TUI.
+3.  **Compose**: User enters a caption.
+4.  **Schedule**: Post is saved to DB with status `scheduled`.
+5.  **Publish (Background)**:
+    - Scheduler finds `scheduled` post.
+    - Uploads media to Instagram (creating containers).
+    - Checks container status until `FINISHED`.
+    - Calls `media_publish` endpoint.
+    - Updates DB status to `published`.
+
+## 5. Developer Guide
+
+### Environment Setup
+Create a `.env` file:
+```env
+INSTA_ACCESS_TOKEN=...
+INSTA_IG_ID=...
+INSTA_APP_ID=...
+INSTA_APP_SECRET=...
+DRY_RUN=true  # Set to false to actually post
+PUBLIC_URL_PREFIX=https://your-tunnel.ngrok.io/ # Required for non-dry-run
+```
+
+### Running the App
 ```bash
 go run cmd/post-creator/main.go
 ```
 
-## 🎮 Interaction Patterns
+### Testing
+- **Unit Tests**: `go test ./...`
+- **Manual TUI Testing**: See "TUI Interaction Guide" below.
 
-The TUI is built with Bubble Tea. Since you cannot see the screen directly, follow these input patterns for testing different states:
+## 6. TUI Interaction Guide 🤖
 
-### 1. First-Time Setup
-On a clean database (or if `photos_dir` is not set):
+(Original content preserved for reference)
+
+### 🚀 How to Run
+```bash
+go run cmd/post-creator/main.go
+```
+
+### 🎮 Interaction Patterns
+
+#### 1. First-Time Setup
 - **Set Directory**: 
-  - Use `j` / `k` to navigate folders.
-  - Press `Enter` to open a folder.
-  - Press `s` to **select the current directory** as the root.
-- **Auto-Cleanup**: Type `y` or `n` to toggle the 30-day cleanup feature.
+  - `j`/`k` to navigate. `Enter` to open. `s` to select root.
+- **Auto-Cleanup**: `y`/`n`.
 
-### 2. Main Menu Navigation
-Once setup is complete, you will be at the main menu:
-- **Move Selection**: Use `j` (down) or `k` (up).
-- **Enter View**: Press `Enter` on the selected item.
-- **Views**:
-  - **Dashboard**: View limits (Work in Progress).
-  - **Media Browser**: Select photos for posting.
-  - **Scheduled Posts**: View history and pending posts.
-  - **Settings**: Configure app parameters.
+#### 2. Main Menu
+- **Move**: `j`/`k`. **Enter**: Select.
+- **Views**: Dashboard, Media Browser, Scheduled Posts, Settings.
 
-### 3. Media Browser (The Core Loop)
-- **Navigate**: Use `j`/`k` (classic) or `Enter` on `..` to go up.
-- **Enter Folder**: Press `Enter` on a directory name (prefixed with `📁`).
-- **Select Media**: Press `Enter` on a file name (prefixed with `📄`) to toggle selection (marked with `[x]`).
-- **Continue to Composer**: Press `c` once you have selected your photos.
+#### 3. Media Browser
+- **Select**: `Enter` on file (`📄`). `Enter` on folder (`📁`).
+- **Continue**: Press `c` after selection.
 
-### 4. Settings Menu
-- **Change Photos Directory**:
-  - Navigate to the desired folder.
-  - Press `s` to confirm it as the new root directory.
-- **Auto Cleanup**: Triggers the `y/n` prompt for the 30-day cleanup feature.
+#### 4. Post Composer
+- **Draft**: Press `d`.
+- **Schedule**: Press `Enter`.
+- **Cancel**: Press `q`.
 
-### 5. Post Composer
-- **Write Caption**: Type your caption text.
-- **Schedule Post**: Press `Enter` to save with status `scheduled` (immediate post).
-- **Save Draft**: Press `d` to save with status `draft`.
-- **Cancel**: Press `q` to return to the menu without saving.
+#### 5. Settings
+- **Change Directory**: Navigate and press `s`.
 
-### 6. Scheduled Posts (Table View)
-- **Navigate Table**: Use `j`/`k` to scroll through the list of posts.
-- **Back to Menu**: Press `q`.
+## 7. Troubleshooting
 
-## 🧪 Testing Scenarios
-
-### Scenario A: Verify Photo Limit Warning
-1. Create a directory with 1,001 empty files:
-   ```bash
-   mkdir -p test_warn && for i in {1..1001}; do touch test_warn/img_$i.jpg; done
-   ```
-2. Run the TUI and set the directory to `test_warn`.
-3. Verify the TUI displays the warning (requires an `Enter` to bypass).
-
-### Scenario B: Testing Auto-Cleanup
-1. Manually insert a "posted" record into the database with a date > 30 days ago.
-2. Ensure the file exists on disk.
-3. Start the TUI with `auto_cleanup` enabled.
-4. Verify the file is deleted from the filesystem (check logs or disk).
-
-### Scenario C: Post Persistence (Draft vs Schedule)
-1. Select 3 photos in the Browser.
-2. Enter a caption "Test Draft".
-3. Press `d`.
-4. Run: `sqlite3 post_creator.db "SELECT status FROM posts WHERE caption='Test Draft'"` -> Should be `draft`.
-5. Repeat for "Test Schedule" and press `Enter` -> Should be `scheduled`.
-
-### Scenario D: Changing Directory via Settings
-1. Go to **Settings** -> **Change Photos Directory**.
-2. Navigate to a subfolder.
-3. Press `s`.
-4. Verify `photos_dir` in `settings` table:
-   ```bash
-   sqlite3 post_creator.db "SELECT value FROM settings WHERE key='photos_dir';"
-   ```
-
-## ⚠️ Important Notes
-- **Input Lag**: When using `run_command` and `send_command_input`, wait for the process to process the input.
-- **Database**: The database is `post_creator.db`. You can reset the state by deleting this file.
-- **Logs**: If the TUI crashes, check the terminal output for panic messages.
-
+- **"Photo Limit Reached"**: The directory has too many files. Delete old ones or enable Auto-Cleanup.
+- **API Errors**: Check `.env` credentials and `debug.log`.
+- **Images not loading on Instagram**: Ensure `PUBLIC_URL_PREFIX` is reachable from the internet.
