@@ -15,7 +15,7 @@ import (
 func NewBrowserTable() table.Model {
 	t := table.New(
 		table.WithColumns([]table.Column{
-			{Title: " ", Width: 3},
+			{Title: " ", Width: 4},
 			{Title: "Name", Width: 40},
 			{Title: "Size", Width: 10},
 			{Title: "Modified", Width: 20},
@@ -38,6 +38,15 @@ func NewFilePicker() filepicker.Model {
 	fp.AllowedTypes = api.SupportedExtensions
 	fp.CurrentDirectory, _ = os.Getwd()
 	fp.SetHeight(20)
+
+	// Apply Theme
+	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	fp.Styles.Selected = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
+	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Highlight)
+	fp.Styles.File = lipgloss.NewStyle().Foreground(Theme.Text)
+	fp.Styles.DisabledFile = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(Theme.Subtle)
+
 	return fp
 }
 

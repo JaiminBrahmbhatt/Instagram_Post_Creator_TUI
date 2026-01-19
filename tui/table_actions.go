@@ -126,7 +126,7 @@ func (m *Model) refreshBrowserTable() {
 		selected := " "
 		if !onlyDirs {
 			if slices.Contains(m.selectedMedia, filepath.Join(m.browserDir, f.Name())) {
-				selected = "x"
+				selected = "✓"
 			}
 		}
 
