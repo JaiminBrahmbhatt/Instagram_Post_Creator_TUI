@@ -41,7 +41,7 @@ Expand the Settings form to include the new fields.
 ## Phase 3: Verification & Cleanup
 Ensure the application actually uses the new settings.
 
-- [ ] Task: Verify Config Usage
+- [x] Task: Verify Config Usage <!-- id: 7 --> [ce78b49]
     - [ ] Verify that the `api` package or `main` loop actually queries the DB for these values (via the `Update Configuration Logic` work in Phase 1, but verifying here).
     - [ ] If `main.go` initializes things *before* the DB is queryable for these, we might need to adjust initialization order or hot-reloading.
     - [ ] *Correction:* `DRY_RUN` might be checked deeply. We need to ensure dynamic checking or restart requirement.
