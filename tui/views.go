@@ -41,11 +41,22 @@ func (m *Model) viewComposer() string {
 
 func (m *Model) viewDashboard() string {
 	title := TitleStyle.Render("Instagram API Limits")
-	usage := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
+	
+	quotaText := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 	if m.quotaTotal == 0 {
-		usage = "Loading or unavailable..."
+		quotaText = "Loading or unavailable..."
 	}
-	return fmt.Sprintf("%s\n\n%s\n\n(24-hour moving window)\n\nPress 'q' to return to menu", title, usage)
+	
+	usageCard := CardStyle.Render(quotaText)
+	
+	return lipgloss.JoinVertical(lipgloss.Left,
+		title,
+		usageCard,
+		"\n",
+		lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(24-hour moving window)"),
+		"\n",
+		lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Press 'q' to return to menu"),
+	)
 }
 
 func (m *Model) viewFooter() string {

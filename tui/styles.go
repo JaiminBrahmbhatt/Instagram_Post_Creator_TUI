@@ -72,9 +72,9 @@ var (
 	// --- Legacy Styles (Refined) ---
 
 	TitleStyle = lipgloss.NewStyle().
-			Foreground(Theme.Background).
-			Background(Theme.Primary).
-			Padding(0, 1)
+			Foreground(Theme.Primary).
+			Bold(true).
+			MarginBottom(1)
 
 	DocStyle = lipgloss.NewStyle().Margin(1, 2)
 
