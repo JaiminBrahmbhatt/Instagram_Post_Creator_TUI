@@ -86,7 +86,7 @@ PUBLIC_URL_PREFIX=https://your-tunnel.ngrok.io/ # Required for non-dry-run
 
 ### Running the App
 ```bash
-go run cmd/post-creator/main.go
+go run ./cmd/post-creator
 ```
 
 ### Testing
@@ -99,7 +99,7 @@ go run cmd/post-creator/main.go
 
 ### 🚀 How to Run
 ```bash
-go run cmd/post-creator/main.go
+go run ./cmd/post-creator
 ```
 
 ### 🎮 Interaction Patterns

@@ -54,7 +54,7 @@ PUBLIC_URL_PREFIX=https://.../  # Public prefix for media files
 go mod tidy
 
 # Run the application
-go run cmd/post-creator/main.go
+go run ./cmd/post-creator
 ```
 
 ## 🎮 Navigation & Shortcuts
