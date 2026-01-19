@@ -65,6 +65,9 @@ type Model struct {
 	setupStep     int // 0: dir, 1: cleanup
 	mediaCount    int
 	table         table.Model
+	browserTable  table.Model
+	browserDir    string
+	settingsList  list.Model
 	showFullHelp  bool
 }
 
@@ -74,6 +77,7 @@ func InitialModel(database *db.Database) Model {
 		item{title: "Dashboard", desc: "View limits and engagement"},
 		item{title: "Media Browser", desc: "Select photos for carousel"},
 		item{title: "Scheduled Posts", desc: "Manage your queue"},
+		item{title: "Settings", desc: "Configure app settings"},
 	}
 
 	ti := textinput.New()
@@ -112,13 +116,36 @@ func InitialModel(database *db.Database) Model {
 		Bold(false)
 	t.SetStyles(s)
 
+	bt := table.New(
+		table.WithColumns([]table.Column{
+			{Title: " ", Width: 3},
+			{Title: "Name", Width: 40},
+			{Title: "Size", Width: 10},
+			{Title: "Modified", Width: 20},
+		}),
+		table.WithFocused(true),
+		table.WithHeight(10),
+	)
+	bt.SetStyles(s)
+
+	// Settings menu
+	settingsMenuItems := []list.Item{
+		item{title: "Change Photos Directory", desc: "Set the root folder for media browsing"},
+		item{title: "Auto Cleanup", desc: "Toggle 30-day post cleanup"},
+	}
+	sl := list.New(settingsMenuItems, list.NewDefaultDelegate(), 0, 0)
+	sl.Title = "Settings"
+	sl.SetShowHelp(false)
+
 	m := Model{
-		db:          database,
-		list:        l,
-		fp:          fp,
-		input:       ti,
-		table:       t,
-		currentView: "menu",
+		db:           database,
+		list:         l,
+		fp:           fp,
+		input:        ti,
+		table:        t,
+		browserTable: bt,
+		settingsList: sl,
+		currentView:  "menu",
 	}
 
 	// Check for first-time setup
@@ -127,7 +154,9 @@ func InitialModel(database *db.Database) Model {
 		m.currentView = "setup"
 		m.setupStep = 0
 		m.fp.DirAllowed = true
-		m.fp.FileAllowed = false
+		m.fp.FileAllowed = false // Only show directories
+		m.fp.ShowPermissions = false
+		m.fp.AllowedTypes = nil
 	} else {
 		// Ensure absolute path
 		absDir, err := filepath.Abs(dir)
@@ -135,12 +164,72 @@ func InitialModel(database *db.Database) Model {
 			absDir = dir
 		}
 		m.photosDir = absDir
+		m.browserDir = absDir
 		m.fp.CurrentDirectory = absDir
 		database.RunCleanup()
 		m.checkMediaCount()
 	}
 
 	return m
+}
+
+func (m *Model) refreshBrowserTable() {
+	files, err := os.ReadDir(m.browserDir)
+	if err != nil {
+		m.statusMsg = "Error reading dir: " + err.Error()
+		return
+	}
+
+	var rows []table.Row
+	// Add ".." entry if not at root
+	if m.browserDir != "/" {
+		rows = append(rows, table.Row{" ", "..", "", ""})
+	}
+
+	onlyDirs := m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0)
+
+	for _, f := range files {
+		info, _ := f.Info()
+		name := f.Name()
+		size := ""
+		mod := ""
+		icon := "📄"
+
+		if f.IsDir() {
+			icon = "📁"
+			name = name + "/"
+		} else {
+			if onlyDirs {
+				continue
+			}
+			// Filter for images like the filepicker did
+			ext := strings.ToLower(filepath.Ext(name))
+			if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+				continue
+			}
+			size = fmt.Sprintf("%.1f KB", float64(info.Size())/1024)
+			mod = info.ModTime().Format("2006-01-02 15:04")
+		}
+
+		selected := " "
+		if !onlyDirs {
+			fullPath := filepath.Join(m.browserDir, f.Name())
+			for _, s := range m.selectedMedia {
+				if s == fullPath {
+					selected = "x"
+					break
+				}
+			}
+		}
+
+		rows = append(rows, table.Row{
+			selected,
+			icon + " " + name,
+			size,
+			mod,
+		})
+	}
+	m.browserTable.SetRows(rows)
 }
 
 func (m *Model) checkMediaCount() {
@@ -206,6 +295,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.quitting = true
 				return m, tea.Quit
 			}
+			if m.currentView == "settings_dir" {
+				m.currentView = "settings"
+				return m, nil
+			}
 			m.currentView = "menu"
 			return m, nil
 		case "enter":
@@ -233,17 +326,80 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, nil
 					}
 					m.currentView = "browser"
-					m.fp.DirAllowed = true
-					m.fp.FileAllowed = true
-					m.fp.CurrentDirectory = m.photosDir
-					m.statusMsg = fmt.Sprintf("Browsing: %s", m.photosDir)
-					return m, m.fp.Init()
+					m.browserDir = m.photosDir
+					m.fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"} // Restore image filters
+					m.refreshBrowserTable()
+					return m, nil
 				case "Scheduled Posts":
 					m.refreshTable()
 					m.currentView = "scheduler"
+				case "Settings":
+					m.currentView = "settings"
 				}
+			case "settings":
+				it := m.settingsList.SelectedItem()
+				if it == nil {
+					return m, nil
+				}
+				selectedItem := it.(item)
+				switch selectedItem.title {
+				case "Change Photos Directory":
+					m.currentView = "settings_dir"
+					m.browserDir = m.photosDir
+					if m.browserDir == "" {
+						m.browserDir, _ = os.Getwd()
+					}
+					m.refreshBrowserTable()
+					m.browserTable.GotoTop()
+					return m, nil
+				case "Auto Cleanup":
+					m.setupStep = 1 // Reuse setup cleanup view
+					m.currentView = "setup"
+				}
+			case "settings_dir":
+				// File picker handled in switch below
 			case "browser":
-				// We'll check selection after the model update
+				selectedRow := m.browserTable.SelectedRow()
+				if len(selectedRow) < 2 {
+					return m, nil
+				}
+				name := selectedRow[1]
+				isDir := strings.HasPrefix(name, "📁")
+				cleanName := name
+				if isDir {
+					cleanName = strings.TrimPrefix(name, "📁 ")
+					cleanName = strings.TrimSuffix(cleanName, "/")
+				} else {
+					cleanName = strings.TrimPrefix(name, "📄 ")
+				}
+
+				if cleanName == ".." {
+					m.browserDir = filepath.Dir(m.browserDir)
+					m.refreshBrowserTable()
+					return m, nil
+				}
+
+				fullPath := filepath.Join(m.browserDir, cleanName)
+				if isDir {
+					m.browserDir = fullPath
+					m.refreshBrowserTable()
+					m.browserTable.GotoTop()
+				} else {
+					// Toggle selection
+					idx := -1
+					for i, s := range m.selectedMedia {
+						if s == fullPath {
+							idx = i
+							break
+						}
+					}
+					if idx >= 0 {
+						m.selectedMedia = append(m.selectedMedia[:idx], m.selectedMedia[idx+1:]...)
+					} else {
+						m.selectedMedia = append(m.selectedMedia, fullPath)
+					}
+					m.refreshBrowserTable()
+				}
 			case "composer":
 				m.caption = m.input.Value()
 				// Default to scheduled for now (+0 minutes)
@@ -294,6 +450,27 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.input.Focus()
 				}
 			}
+		case "s":
+			if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
+				path := m.fp.CurrentDirectory
+				if m.currentView == "settings_dir" {
+					path = m.browserDir
+				}
+				absPath, _ := filepath.Abs(path)
+				m.photosDir = absPath
+				m.browserDir = absPath
+				m.db.SetSetting("photos_dir", absPath)
+				if m.currentView == "setup" {
+					m.setupStep = 1
+					m.fp.DirAllowed = false
+					m.fp.FileAllowed = true
+					m.fp.CurrentDirectory = absPath
+				} else {
+					m.currentView = "settings"
+					m.statusMsg = "Photo directory updated!"
+				}
+				return m, nil
+			}
 		case "?":
 			m.showFullHelp = !m.showFullHelp
 		}
@@ -302,6 +479,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Account for path (1) + help (1) + status (1) + margins/padding (~4)
 		footerHeight := 6
 		m.list.SetSize(msg.Width-h, msg.Height-v-footerHeight)
+		m.settingsList.SetSize(msg.Width-h, msg.Height-v-footerHeight)
 		m.fp.SetHeight(msg.Height - v - footerHeight - 2)
 		m.table.SetHeight(msg.Height - v - footerHeight - 4)
 	}
@@ -310,24 +488,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch m.currentView {
 	case "menu":
 		m.list, cmd = m.list.Update(msg)
-	case "browser":
-		m.fp, cmd = m.fp.Update(msg)
-		if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
-			idx := -1
-			for i, s := range m.selectedMedia {
-				if s == path {
-					idx = i
-					break
+	case "settings":
+		m.settingsList, cmd = m.settingsList.Update(msg)
+	case "browser", "settings_dir":
+		m.browserTable, cmd = m.browserTable.Update(msg)
+		if m.currentView == "settings_dir" && msg != nil {
+			// Handle Enter for directory navigation in settings_dir
+			if k, ok := msg.(tea.KeyMsg); ok && k.String() == "enter" {
+				selectedRow := m.browserTable.SelectedRow()
+				if len(selectedRow) >= 2 {
+					name := selectedRow[1]
+					if strings.HasPrefix(name, "📁") || strings.Contains(name, "..") {
+						cleanName := strings.TrimPrefix(name, "📁 ")
+						cleanName = strings.TrimSuffix(cleanName, "/")
+
+						if cleanName == ".." {
+							m.browserDir = filepath.Dir(m.browserDir)
+						} else {
+							m.browserDir = filepath.Join(m.browserDir, cleanName)
+						}
+						m.refreshBrowserTable()
+						m.browserTable.GotoTop()
+						return m, nil
+					}
 				}
-			}
-			if idx >= 0 {
-				// Remove from selection
-				m.selectedMedia = append(m.selectedMedia[:idx], m.selectedMedia[idx+1:]...)
-				m.statusMsg = fmt.Sprintf("Removed: %s", filepath.Base(path))
-			} else {
-				// Add to selection
-				m.selectedMedia = append(m.selectedMedia, path)
-				m.statusMsg = fmt.Sprintf("Added: %s", filepath.Base(path))
 			}
 		}
 	case "setup":
@@ -336,11 +520,17 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
 				absPath, _ := filepath.Abs(path)
 				m.photosDir = absPath
+				m.browserDir = absPath
 				m.db.SetSetting("photos_dir", absPath)
-				m.setupStep = 1
-				m.fp.DirAllowed = false
-				m.fp.FileAllowed = true
-				m.fp.CurrentDirectory = absPath
+				if m.currentView == "setup" {
+					m.setupStep = 1
+					m.fp.DirAllowed = false
+					m.fp.FileAllowed = true
+					m.fp.CurrentDirectory = absPath
+				} else {
+					m.currentView = "settings"
+					m.statusMsg = "Photo directory updated!"
+				}
 			}
 		} else {
 			m.input, cmd = m.input.Update(msg)
@@ -380,6 +570,14 @@ func (m Model) View() string {
 		} else {
 			s = title + "\n\nAuto Cleanup\n\nWould you like to automatically remove photos after 30 days if they have been posted?\n\n(y/n)"
 		}
+	case "settings":
+		s = m.settingsList.View()
+	case "settings_dir":
+		s = titleStyle.Render("Change Photos Directory") + "\n\n" +
+			"Navigation: Enter to open folder • Esc/q: Back to settings\n" +
+			"Selection:  Press 's' to select THE CURRENT folder\n\n" +
+			"Current: " + m.browserDir + "\n\n" +
+			m.browserTable.View()
 	case "dashboard":
 		s = "Dashboard View (Work in Progress)"
 	case "browser":
@@ -392,7 +590,7 @@ func (m Model) View() string {
 			}
 			s += strings.Join(names, ", ") + "\n\n"
 		}
-		s += m.fp.View()
+		s += m.browserTable.View()
 	case "composer":
 		s = fmt.Sprintf(
 			"Composer (Enter: schedule NOW • d: save draft • q: cancel)\n\nSelected: %d files\n\n%s",
@@ -411,7 +609,10 @@ func (m Model) View() string {
 	var footer string
 
 	// Highlighted Path (only if we have a context or in browser)
-	currentPath := m.fp.CurrentDirectory
+	currentPath := m.browserDir
+	if m.currentView == "setup" && m.setupStep == 0 {
+		currentPath = m.fp.CurrentDirectory
+	}
 	if currentPath != "" {
 		footer += pathStyle.Render("📍 "+currentPath) + "\n"
 	}
@@ -423,6 +624,9 @@ func (m Model) View() string {
 		keys := "↑/k up • ↓/j down • / filter • q quit"
 		if m.currentView == "browser" && len(m.selectedMedia) > 0 {
 			keys += " • c continue"
+		}
+		if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
+			keys += " • s select"
 		}
 		keys += " • ? more"
 		footer += helpStyle.Render(keys)
