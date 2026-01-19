@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -38,6 +39,39 @@ var (
 			Bold(true)
 )
 
+// ViewState definitions
+type ViewState int
+
+const (
+	MenuView ViewState = iota
+	SetupView
+	DashboardView
+	BrowserView
+	SchedulerView
+	SettingsView
+	SettingsDirView
+	ComposerView
+)
+
+type quotaMsg struct {
+	usage int
+	total int
+	err   error
+}
+
+func fetchQuotaCmd(client *api.Client) tea.Cmd {
+	return func() tea.Msg {
+		limit, err := client.GetPublishingLimit()
+		if err != nil {
+			return quotaMsg{err: err}
+		}
+		return quotaMsg{
+			usage: limit.QuotaUsage,
+			total: limit.Config.QuotaTotal,
+		}
+	}
+}
+
 type item struct {
 	title, desc string
 	path        string
@@ -52,7 +86,7 @@ type Model struct {
 	list          list.Model
 	fp            filepicker.Model
 	input         textinput.Model
-	currentView   string
+	currentView   ViewState
 	selectedMedia []string
 	caption       string
 	// ... other fields remain ...
@@ -113,7 +147,7 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 	fp := filepicker.New()
 	fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"}
 	fp.CurrentDirectory, _ = os.Getwd()
-	fp.Height = 20
+	fp.SetHeight(20)
 
 	columns := []table.Column{
 		{Title: "ID", Width: 4},
@@ -176,7 +210,7 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 		table:        t,
 		browserTable: bt,
 		settingsList: sl,
-		currentView:  "menu",
+		currentView:  MenuView,
 		client:       client,
 		help:         help.New(),
 	}
@@ -184,7 +218,7 @@ func InitialModel(database *db.Database, client *api.Client) Model {
 	// Check for first-time setup
 	dir, _ := database.GetSetting("photos_dir")
 	if dir == "" {
-		m.currentView = "setup"
+		m.currentView = SetupView
 		m.setupStep = 0
 		m.fp.DirAllowed = true
 		m.fp.FileAllowed = false // Only show directories
@@ -219,7 +253,7 @@ func (m *Model) refreshBrowserTable() {
 		rows = append(rows, table.Row{" ", "..", "", ""})
 	}
 
-	onlyDirs := m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0)
+	onlyDirs := m.currentView == SettingsDirView || (m.currentView == SetupView && m.setupStep == 0)
 
 	for _, f := range files {
 		info, _ := f.Info()
@@ -247,11 +281,8 @@ func (m *Model) refreshBrowserTable() {
 		selected := " "
 		if !onlyDirs {
 			fullPath := filepath.Join(m.browserDir, f.Name())
-			for _, s := range m.selectedMedia {
-				if s == fullPath {
-					selected = "x"
-					break
-				}
+			if slices.Contains(m.selectedMedia, fullPath) {
+				selected = "x"
 			}
 		}
 
@@ -266,7 +297,11 @@ func (m *Model) refreshBrowserTable() {
 }
 
 func (m *Model) checkMediaCount() {
-	count, _ := m.db.GetDirMediaCount(m.photosDir)
+	count, err := m.db.GetDirMediaCount(m.photosDir)
+	if err != nil {
+		m.statusMsg = "Error counting media: " + err.Error()
+		return
+	}
 	m.mediaCount = count
 	if count >= 1000 {
 		m.showLimitWarn = true
@@ -291,7 +326,11 @@ func (m *Model) formatLocalTime(utcStr string) string {
 }
 
 func (m *Model) refreshTable() {
-	posts, _ := m.db.GetPosts()
+	posts, err := m.db.GetPosts()
+	if err != nil {
+		m.statusMsg = "Error fetching posts: " + err.Error()
+		return
+	}
 	var rows []table.Row
 	for _, p := range posts {
 		timeToShow := ""
@@ -327,18 +366,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.quitting = true
 			return m, tea.Quit
 		case key.Matches(msg, Keys.Back):
-			if m.currentView == "menu" && m.list.FilterState() == list.Filtering {
+			if m.currentView == MenuView && m.list.FilterState() == list.Filtering {
 				break
 			}
-			if m.currentView == "menu" || m.currentView == "setup" {
+			if m.currentView == MenuView || m.currentView == SetupView {
 				m.quitting = true
 				return m, tea.Quit
 			}
-			if m.currentView == "settings_dir" {
-				m.currentView = "settings"
+			if m.currentView == SettingsDirView {
+				m.currentView = SettingsView
 				return m, nil
 			}
-			m.currentView = "menu"
+			m.currentView = MenuView
 			return m, nil
 		case key.Matches(msg, Keys.Enter):
 			if m.showLimitWarn {
@@ -346,53 +385,54 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			switch m.currentView {
-			case "setup":
+			case SetupView:
 				if m.setupStep == 0 {
 					// We'll check selection after the model update
 				}
-			case "menu":
+			case MenuView:
 				it := m.list.SelectedItem()
 				if it == nil {
 					return m, nil
 				}
-				selectedItem := it.(item)
+				selectedItem, ok := it.(item)
+				if !ok {
+					return m, nil
+				}
 				switch selectedItem.title {
 				case "Dashboard":
-					m.currentView = "dashboard"
+					m.currentView = DashboardView
 					if m.client != nil {
-						limit, err := m.client.GetPublishingLimit()
-						if err == nil {
-							m.quotaUsage = limit.QuotaUsage
-							m.quotaTotal = limit.Config.QuotaTotal
-						} else {
-							m.statusMsg = "Error fetching limits: " + err.Error()
-						}
+						// Return command to fetch quota
+						return m, fetchQuotaCmd(m.client)
 					}
 				case "Media Browser":
 					m.checkMediaCount()
 					if m.showLimitWarn {
 						return m, nil
 					}
-					m.currentView = "browser"
+					m.currentView = BrowserView
 					m.browserDir = m.photosDir
 					m.fp.AllowedTypes = []string{".jpg", ".jpeg", ".png", ".JPG", ".JPEG", ".PNG"} // Restore image filters
 					m.refreshBrowserTable()
 					return m, nil
 				case "Scheduled Posts":
 					m.refreshTable()
-					m.currentView = "scheduler"
+					m.currentView = SchedulerView
 				case "Settings":
-					m.currentView = "settings"
+					m.currentView = SettingsView
 				}
-			case "settings":
+			case SettingsView:
 				it := m.settingsList.SelectedItem()
 				if it == nil {
 					return m, nil
 				}
-				selectedItem := it.(item)
+				selectedItem, ok := it.(item)
+				if !ok {
+					return m, nil
+				}
 				switch selectedItem.title {
 				case "Change Photos Directory":
-					m.currentView = "settings_dir"
+					m.currentView = SettingsDirView
 					m.browserDir = m.photosDir
 					if m.browserDir == "" {
 						m.browserDir, _ = os.Getwd()
@@ -402,11 +442,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				case "Auto Cleanup":
 					m.setupStep = 1 // Reuse setup cleanup view
-					m.currentView = "setup"
+					m.currentView = SetupView
 				}
-			case "settings_dir":
+			case SettingsDirView:
 				// File picker handled in switch below
-			case "browser":
+			case BrowserView:
 				selectedRow := m.browserTable.SelectedRow()
 				if len(selectedRow) < 2 {
 					return m, nil
@@ -448,7 +488,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.refreshBrowserTable()
 				}
-			case "composer":
+			case ComposerView:
 				m.caption = m.input.Value()
 				// Default to scheduled for now (+0 minutes)
 				_, err := m.db.SavePost(m.caption, m.selectedMedia, "+0 minutes", "scheduled")
@@ -458,10 +498,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.statusMsg = "Post scheduled for now!"
 					m.selectedMedia = nil // Clear selection after saving
 				}
-				m.currentView = "menu"
+				m.currentView = MenuView
 			}
 		case key.Matches(msg, Keys.Draft):
-			if m.currentView == "composer" {
+			if m.currentView == ComposerView {
 				m.caption = m.input.Value()
 				_, err := m.db.SavePost(m.caption, m.selectedMedia, "", "draft")
 				if err != nil {
@@ -470,16 +510,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.statusMsg = "Post saved as draft!"
 					m.selectedMedia = nil
 				}
-				m.currentView = "menu"
+				m.currentView = MenuView
 			}
 		case key.Matches(msg, Keys.AutoCleanup):
-			if m.currentView == "setup" && m.setupStep == 1 {
+			if m.currentView == SetupView && m.setupStep == 1 {
 				val := "0"
 				if msg.String() == "y" {
 					val = "1"
 				}
 				m.db.SetSetting("auto_cleanup", val)
-				m.currentView = "menu"
+				m.currentView = MenuView
 				if val == "1" {
 					m.db.RunCleanup()
 				}
@@ -488,29 +528,29 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		case key.Matches(msg, Keys.Continue):
-			if m.currentView == "browser" {
+			if m.currentView == BrowserView {
 				if len(m.selectedMedia) > 0 {
-					m.currentView = "composer"
+					m.currentView = ComposerView
 					m.input.Focus()
 				}
 			}
 		case key.Matches(msg, Keys.Select):
-			if m.currentView == "settings_dir" || (m.currentView == "setup" && m.setupStep == 0) {
+			if m.currentView == SettingsDirView || (m.currentView == SetupView && m.setupStep == 0) {
 				path := m.fp.CurrentDirectory
-				if m.currentView == "settings_dir" {
+				if m.currentView == SettingsDirView {
 					path = m.browserDir
 				}
 				absPath, _ := filepath.Abs(path)
 				m.photosDir = absPath
 				m.browserDir = absPath
 				m.db.SetSetting("photos_dir", absPath)
-				if m.currentView == "setup" {
+				if m.currentView == SetupView {
 					m.setupStep = 1
 					m.fp.DirAllowed = false
 					m.fp.FileAllowed = true
 					m.fp.CurrentDirectory = absPath
 				} else {
-					m.currentView = "settings"
+					m.currentView = SettingsView
 					m.statusMsg = "Photo directory updated!"
 				}
 				return m, nil
@@ -518,6 +558,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, Keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
 		}
+	// Handle quota message
+	case quotaMsg:
+		if msg.err != nil {
+			m.statusMsg = "Error fetching limits: " + msg.err.Error()
+		} else {
+			m.quotaUsage = msg.usage
+			m.quotaTotal = msg.total
+		}
+
 	case tea.WindowSizeMsg:
 		m.help.Width = msg.Width
 		h, v := docStyle.GetFrameSize()
@@ -537,13 +586,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	var cmd tea.Cmd
 	switch m.currentView {
-	case "menu":
+	case MenuView:
 		m.list, cmd = m.list.Update(msg)
-	case "settings":
+	case SettingsView:
 		m.settingsList, cmd = m.settingsList.Update(msg)
-	case "browser", "settings_dir":
+	case BrowserView, SettingsDirView:
 		m.browserTable, cmd = m.browserTable.Update(msg)
-		if m.currentView == "settings_dir" && msg != nil {
+		if m.currentView == SettingsDirView && msg != nil {
 			// Handle Enter for directory navigation in settings_dir
 			if k, ok := msg.(tea.KeyMsg); ok && key.Matches(k, Keys.Enter) {
 				selectedRow := m.browserTable.SelectedRow()
@@ -565,7 +614,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-	case "setup":
+	case SetupView:
 		if m.setupStep == 0 {
 			m.fp, cmd = m.fp.Update(msg)
 			if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
@@ -573,22 +622,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.photosDir = absPath
 				m.browserDir = absPath
 				m.db.SetSetting("photos_dir", absPath)
-				if m.currentView == "setup" {
+				if m.currentView == SetupView {
 					m.setupStep = 1
 					m.fp.DirAllowed = false
 					m.fp.FileAllowed = true
 					m.fp.CurrentDirectory = absPath
 				} else {
-					m.currentView = "settings"
+					m.currentView = SettingsView
 					m.statusMsg = "Photo directory updated!"
 				}
 			}
 		} else {
 			m.input, cmd = m.input.Update(msg)
 		}
-	case "composer":
+	case ComposerView:
 		m.input, cmd = m.input.Update(msg)
-	case "scheduler":
+	case SchedulerView:
 		m.table, cmd = m.table.Update(msg)
 	}
 	return m, cmd
@@ -614,29 +663,29 @@ func (m Model) View() string {
 
 	var s string
 	switch m.currentView {
-	case "setup":
+	case SetupView:
 		title := titleStyle.Render("First Time Setup")
 		if m.setupStep == 0 {
 			s = title + "\n\nPick a directory for your photos:\n\n" + m.fp.View()
 		} else {
 			s = title + "\n\nAuto Cleanup\n\nWould you like to automatically remove photos after 30 days if they have been posted?\n\n(y/n)"
 		}
-	case "settings":
+	case SettingsView:
 		s = m.settingsList.View()
-	case "settings_dir":
+	case SettingsDirView:
 		s = titleStyle.Render("Change Photos Directory") + "\n\n" +
 			"Navigation: Enter to open folder • Esc/q: Back to settings\n" +
 			"Selection:  Press 's' to select THE CURRENT folder\n\n" +
 			"Current: " + m.browserDir + "\n\n" +
 			m.browserTable.View()
-	case "dashboard":
+	case DashboardView:
 		title := titleStyle.Render("Instagram API Limits")
 		usage := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 		if m.quotaTotal == 0 {
 			usage = "Loading or unavailable..."
 		}
 		s = fmt.Sprintf("%s\n\n%s\n\n(24-hour moving window)\n\nPress 'q' to return to menu", title, usage)
-	case "browser":
+	case BrowserView:
 		s = "Select Media (Enter: toggle selection • c: continue • q: back)\n\n"
 		if len(m.selectedMedia) > 0 {
 			s += fmt.Sprintf("Selected (%d): ", len(m.selectedMedia))
@@ -647,13 +696,13 @@ func (m Model) View() string {
 			s += strings.Join(names, ", ") + "\n\n"
 		}
 		s += m.browserTable.View()
-	case "composer":
+	case ComposerView:
 		s = fmt.Sprintf(
 			"Composer (Enter: schedule NOW • d: save draft • q: cancel)\n\nSelected: %d files\n\n%s",
 			len(m.selectedMedia),
 			m.input.View(),
 		)
-	case "scheduler":
+	case SchedulerView:
 		s = "Scheduled Posts & History (q: back)\n\n" + m.table.View()
 	default: // menu
 		s = m.list.View()
@@ -664,27 +713,27 @@ func (m Model) View() string {
 
 	// Highlighted Path (only if we have a context or in browser)
 	currentPath := m.browserDir
-	if m.currentView == "setup" && m.setupStep == 0 {
+	if m.currentView == SetupView && m.setupStep == 0 {
 		currentPath = m.fp.CurrentDirectory
 	}
-	if currentPath != "" && (m.currentView == "browser" || m.currentView == "settings_dir") {
+	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
 		footer += pathStyle.Render("📍 "+currentPath) + "\n"
 	}
 
 	// Manual Help Footer (only for views WITHOUT built-in help)
 	// Help Footer
-	if m.currentView != "menu" && m.currentView != "settings" {
+	if m.currentView != MenuView && m.currentView != SettingsView {
 		var km help.KeyMap
 		switch m.currentView {
-		case "browser":
+		case BrowserView:
 			km = BrowserKeyMap{KeyMap: Keys, HasSelection: len(m.selectedMedia) > 0}
-		case "composer":
+		case ComposerView:
 			km = ComposerKeyMap{KeyMap: Keys}
-		case "setup":
+		case SetupView:
 			km = SetupKeyMap{KeyMap: Keys, Step: m.setupStep}
-		case "settings_dir":
+		case SettingsDirView:
 			km = SettingsDirKeyMap{KeyMap: Keys}
-		case "dashboard":
+		case DashboardView:
 			// Simple back key for dashboard
 			km = SettingsDirKeyMap{KeyMap: Keys} // Reuse or make simple
 		}
