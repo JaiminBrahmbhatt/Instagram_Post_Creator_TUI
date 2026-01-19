@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -90,7 +89,11 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 	var itemIDs []string
 	isCarousel := len(mediaPaths) > 1
 
-	s.report("Creating containers for %d files...", len(mediaPaths))
+	if isCarousel {
+		s.report("Creating Carousel Post with %d items...", len(mediaPaths))
+	} else {
+		s.report("Creating Single Post...")
+	}
 
 	// Get photos directory to calculate relative paths
 	photosDir, err := s.DB.GetSetting("photos_dir")
@@ -119,11 +122,6 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 		mType := MediaTypeImage
 		if ext == ".mp4" || ext == ".mov" {
 			mType = MediaTypeVideo
-		}
-
-		// For single posts, omit media_type for images (default)
-		if !isCarousel && mType == MediaTypeImage {
-			mType = ""
 		}
 
 		s.report("  - Uploading %s (%s)", filepath.Base(path), mType)
