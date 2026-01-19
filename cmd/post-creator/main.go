@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 
 	"net/http"
 	"path/filepath"
@@ -64,6 +65,24 @@ func main() {
 			log.Printf("Photo server error: %v", err)
 		}
 	}()
+
+	// Automatic Cloudflare Tunnel
+	if os.Getenv("SKIP_TUNNEL") != "true" {
+		// Only attempt if cloudflared is installed
+		if _, err := exec.LookPath("cloudflared"); err == nil {
+			log.Println("Attempting to start Cloudflare tunnel...")
+			url, cleanup, err := startTunnel(8080)
+			if err != nil {
+				log.Printf("⚠️ Failed to start Cloudflare tunnel: %v. Ensure PUBLIC_URL_PREFIX is set manually.", err)
+			} else {
+				log.Printf("Tunnel active! Setting PUBLIC_URL_PREFIX=%s", url)
+				os.Setenv("PUBLIC_URL_PREFIX", url)
+				defer cleanup()
+			}
+		} else {
+			log.Println("cloudflared not found in PATH. Skipping auto-tunnel.")
+		}
+	}
 
 	// Start TUI
 	p := tea.NewProgram(tui.InitialModel(database, client, scheduler.ReportChan, scheduler.TriggerChan), tea.WithAltScreen())
