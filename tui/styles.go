@@ -13,6 +13,10 @@ var (
 	ColorError     = lipgloss.Color("#FF7644")
 	ColorSuccess   = lipgloss.Color("#22C55E")
 	ColorAccent    = lipgloss.Color("#EE6FF8")
+	ColorLogGray   = lipgloss.Color("#949494")
+	ColorSubtle    = lipgloss.Color("#3C3836")
+
+	PhotoLimitThreshold = 1000
 
 	// Base Styles
 	TitleStyle = lipgloss.NewStyle().
@@ -62,7 +66,7 @@ var (
 			Height(8)
 
 	LogEntryStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#949494")).
+			Foreground(ColorLogGray).
 			Italic(true)
 
 	SuccessBoxStyle = lipgloss.NewStyle().
