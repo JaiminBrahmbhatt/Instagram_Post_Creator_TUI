@@ -1,8 +1,0 @@
-{
-  "track_id": "resource_mgmt_20260119",
-  "type": "chore",
-  "status": "new",
-  "created_at": "2026-01-19T14:00:00Z",
-  "updated_at": "2026-01-19T14:00:00Z",
-  "description": "Ensure ports are closed and resources cleaned up on exit."
-}
