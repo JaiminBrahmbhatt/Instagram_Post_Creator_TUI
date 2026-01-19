@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/list"
@@ -81,7 +82,7 @@ func InitialModel(database *db.Database) Model {
 	columns := []table.Column{
 		{Title: "ID", Width: 4},
 		{Title: "Status", Width: 10},
-		{Title: "Scheduled At", Width: 20},
+		{Title: "Timestamp (Local)", Width: 25},
 		{Title: "Media", Width: 5},
 		{Title: "Caption", Width: 40},
 	}
@@ -142,14 +143,41 @@ func (m *Model) checkMediaCount() {
 	}
 }
 
+func (m *Model) formatLocalTime(utcStr string) string {
+	if utcStr == "" || utcStr == "NULL" {
+		return "-"
+	}
+	// Try ISO format first (e.g. 2006-01-02T15:04:05Z)
+	t, err := time.Parse(time.RFC3339, utcStr)
+	if err != nil {
+		// Fallback to SQLite space format (e.g. 2006-01-02 15:04:05)
+		t, err = time.Parse("2006-01-02 15:04:05", utcStr)
+		if err != nil {
+			return utcStr // Return raw if both fail
+		}
+	}
+	// Convert to local time and include timezone
+	return t.Local().Format("2006-01-02 15:04 MST")
+}
+
 func (m *Model) refreshTable() {
 	posts, _ := m.db.GetPosts()
 	var rows []table.Row
 	for _, p := range posts {
+		timeToShow := ""
+		switch p.Status {
+		case "draft":
+			timeToShow = m.formatLocalTime(p.CreatedAt)
+		case "published":
+			timeToShow = m.formatLocalTime(p.PublishedAt)
+		default:
+			timeToShow = m.formatLocalTime(p.ScheduledAt)
+		}
+
 		rows = append(rows, table.Row{
 			fmt.Sprintf("%d", p.ID),
 			strings.ToUpper(p.Status),
-			p.ScheduledAt,
+			timeToShow,
 			fmt.Sprintf("%d", p.MediaCount),
 			p.Caption,
 		})

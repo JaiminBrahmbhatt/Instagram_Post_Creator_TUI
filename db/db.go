@@ -198,17 +198,24 @@ type Post struct {
 	ID          int64
 	Caption     string
 	ScheduledAt string
+	PublishedAt string
+	CreatedAt   string
 	Status      string
 	MediaCount  int
 }
 
 func (db *Database) GetPosts() ([]Post, error) {
 	rows, err := db.Conn.Query(`
-		SELECT p.id, p.caption, COALESCE(p.scheduled_at, ''), p.status, COUNT(pm.media_id)
+		SELECT p.id, p.caption,
+		       COALESCE(p.scheduled_at, ''),
+		       COALESCE(p.published_at, ''),
+		       p.created_at,
+		       p.status,
+		       COUNT(pm.media_id)
 		FROM posts p
 		LEFT JOIN post_media pm ON p.id = pm.post_id
 		GROUP BY p.id
-		ORDER BY p.scheduled_at DESC
+		ORDER BY p.id DESC
 	`)
 	if err != nil {
 		return nil, err
@@ -218,7 +225,7 @@ func (db *Database) GetPosts() ([]Post, error) {
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt, &p.Status, &p.MediaCount); err != nil {
+		if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt, &p.PublishedAt, &p.CreatedAt, &p.Status, &p.MediaCount); err != nil {
 			return nil, err
 		}
 		posts = append(posts, p)
