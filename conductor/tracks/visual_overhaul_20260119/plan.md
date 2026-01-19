@@ -48,7 +48,7 @@ Update specific views and components to align with the new design system.
 ## Phase 3: Polish & Interaction
 Focus on the finer details, animations, and status feedback to make the app feel responsive and "alive".
 
-- [ ] Task: Enhance Dashboard & Status
+- [x] Task: Enhance Dashboard & Status <!-- id: 7 --> [08d6cf9]
     - [ ] Redesign `viewDashboard` to use "stat cards" (boxes with big numbers and labels) for quota usage.
     - [ ] Update the "Processing" view in `tui/rendering.go` to use a modern spinner and cleaner log output.
     - [ ] Improve the `viewFooter` to cleanly separate the Status Message from the Help Keybindings.
