@@ -12,6 +12,15 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type PostStatus string
+
+const (
+	StatusDraft     PostStatus = "draft"
+	StatusScheduled PostStatus = "scheduled"
+	StatusPublished PostStatus = "published"
+	StatusFailed    PostStatus = "failed"
+)
+
 type Database struct {
 	Conn *sql.DB
 }
@@ -23,7 +32,7 @@ type Post struct {
 	MediaCount  int
 	PublishedAt string
 	ScheduledAt string
-	Status      string
+	Status      PostStatus
 }
 
 func CalculateHash(filePath string) (string, error) {
@@ -179,7 +188,7 @@ func (db *Database) RunCleanup() error {
 	return nil
 }
 
-func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string, status string) (int64, error) {
+func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string, status PostStatus) (int64, error) {
 	tx, err := db.Conn.Begin()
 	if err != nil {
 		return 0, err

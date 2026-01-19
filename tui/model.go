@@ -222,9 +222,9 @@ func (m *Model) updateComposerView(msg tea.Msg) tea.Cmd {
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch {
 		case key.Matches(keyMsg, Keys.Enter): // Schedule
-			m.savePost("scheduled", "+0 minutes", "Post scheduled for now!")
+			m.savePost(db.StatusScheduled, "+0 minutes", "Post scheduled for now!")
 		case key.Matches(keyMsg, Keys.Draft):
-			m.savePost("draft", "", "Post saved as draft!")
+			m.savePost(db.StatusDraft, "", "Post saved as draft!")
 		}
 	}
 	return cmd
@@ -510,9 +510,9 @@ func (m *Model) refreshTable() {
 	for _, p := range posts {
 		timeToShow := ""
 		switch p.Status {
-		case "draft":
+		case db.StatusDraft:
 			timeToShow = m.formatLocalTime(p.CreatedAt)
-		case "published":
+		case db.StatusPublished:
 			timeToShow = m.formatLocalTime(p.PublishedAt)
 		default:
 			timeToShow = m.formatLocalTime(p.ScheduledAt)
@@ -520,7 +520,7 @@ func (m *Model) refreshTable() {
 
 		rows = append(rows, table.Row{
 			fmt.Sprintf("%d", p.ID),
-			strings.ToUpper(p.Status),
+			strings.ToUpper(string(p.Status)),
 			timeToShow,
 			fmt.Sprintf("%d", p.MediaCount),
 			p.Caption,
@@ -529,7 +529,7 @@ func (m *Model) refreshTable() {
 	m.table.SetRows(rows)
 }
 
-func (m *Model) savePost(status, scheduleTime, successMsg string) {
+func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) {
 	m.caption = m.input.Value()
 	_, err := m.db.SavePost(m.caption, m.selectedMedia, scheduleTime, status)
 	if err != nil {
