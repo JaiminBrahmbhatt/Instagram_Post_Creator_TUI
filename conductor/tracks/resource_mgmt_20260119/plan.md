@@ -15,4 +15,4 @@ Refactor the global `http.ListenAndServe` into a managed `http.Server` instance.
     - [x] Ensure that when `p.Run()` returns (app exit), we call `server.Shutdown(context.Background())`.
     - [x] Ensure the tunnel cleanup is also called.
 
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Server Refactoring' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Server Refactoring' (Protocol in workflow.md) <!-- id: 2 --> [checkpoint: 8541257]
