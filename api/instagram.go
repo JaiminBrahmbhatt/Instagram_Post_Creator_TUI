@@ -17,6 +17,18 @@ type ContainerResponse struct {
 	ID string `json:"id"`
 }
 
+type PublishingLimit struct {
+	Config struct {
+		QuotaDuration int `json:"quota_duration"`
+		QuotaTotal    int `json:"quota_total"`
+	} `json:"config"`
+	QuotaUsage int `json:"quota_usage"`
+}
+
+type LimitResponse struct {
+	Data []PublishingLimit `json:"data"`
+}
+
 func NewClient(accessToken, igID string) *Client {
 	return &Client{
 		AccessToken: accessToken,
@@ -114,4 +126,29 @@ func (c *Client) PublishContainer(containerID string) (string, error) {
 	}
 
 	return res.ID, nil
+}
+
+func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
+	url := fmt.Sprintf("https://graph.instagram.com/v24.0/%s/content_publishing_limit?fields=config,quota_usage&access_token=%s", c.IGID, c.AccessToken)
+
+	resp, err := c.HTTPClient.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: status %d", resp.StatusCode)
+	}
+
+	var res LimitResponse
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, err
+	}
+
+	if len(res.Data) == 0 {
+		return nil, fmt.Errorf("no limit data returned")
+	}
+
+	return &res.Data[0], nil
 }

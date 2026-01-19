@@ -13,6 +13,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/jaiminb/insta-auto-post/api"
 	"github.com/jaiminb/insta-auto-post/db"
 )
 
@@ -69,9 +70,12 @@ type Model struct {
 	browserDir    string
 	settingsList  list.Model
 	showFullHelp  bool
+	client        *api.Client
+	quotaUsage    int
+	quotaTotal    int
 }
 
-func InitialModel(database *db.Database) Model {
+func InitialModel(database *db.Database, client *api.Client) Model {
 	// Menu items
 	menuItems := []list.Item{
 		item{title: "Dashboard", desc: "View limits and engagement"},
@@ -146,6 +150,7 @@ func InitialModel(database *db.Database) Model {
 		browserTable: bt,
 		settingsList: sl,
 		currentView:  "menu",
+		client:       client,
 	}
 
 	// Check for first-time setup
@@ -320,6 +325,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch selectedItem.title {
 				case "Dashboard":
 					m.currentView = "dashboard"
+					if m.client != nil {
+						limit, err := m.client.GetPublishingLimit()
+						if err == nil {
+							m.quotaUsage = limit.QuotaUsage
+							m.quotaTotal = limit.Config.QuotaTotal
+						} else {
+							m.statusMsg = "Error fetching limits: " + err.Error()
+						}
+					}
 				case "Media Browser":
 					m.checkMediaCount()
 					if m.showLimitWarn {
@@ -579,7 +593,12 @@ func (m Model) View() string {
 			"Current: " + m.browserDir + "\n\n" +
 			m.browserTable.View()
 	case "dashboard":
-		s = "Dashboard View (Work in Progress)"
+		title := titleStyle.Render("Instagram API Limits")
+		usage := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
+		if m.quotaTotal == 0 {
+			usage = "Loading or unavailable..."
+		}
+		s = fmt.Sprintf("%s\n\n%s\n\n(24-hour moving window)\n\nPress 'q' to return to menu", title, usage)
 	case "browser":
 		s = "Select Media (Enter: toggle selection • c: continue • q: back)\n\n"
 		if len(m.selectedMedia) > 0 {

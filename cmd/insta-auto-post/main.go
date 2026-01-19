@@ -35,7 +35,7 @@ func main() {
 	scheduler.Start()
 
 	// Start TUI
-	p := tea.NewProgram(tui.InitialModel(database), tea.WithAltScreen())
+	p := tea.NewProgram(tui.InitialModel(database, client), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)
