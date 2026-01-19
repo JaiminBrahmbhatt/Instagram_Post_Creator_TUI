@@ -31,7 +31,7 @@ Update specific views and components to align with the new design system.
     - [ ] Style the list items to look like "cards" or cleaner rows with icons.
     - [ ] Update `tui/views.go` to render the menu with the new style.
 
-- [ ] Task: Overhaul Media Browser
+- [x] Task: Overhaul Media Browser <!-- id: 4 --> [c79126c]
     - [ ] Refactor `NewBrowserTable` in `tui/components.go`.
     - [ ] Apply new table styles (custom headers, row styling, selection highlight) using `lipgloss`.
     - [ ] Improve the visual feedback for selected items (e.g., checkbox icon or distinct color change).
