@@ -4,5 +4,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [x] **Track: Visual & UX Overhaul (TUI Modernization)**
-  *Link: [./conductor/tracks/visual_overhaul_20260119/](./conductor/tracks/visual_overhaul_20260119/)*
