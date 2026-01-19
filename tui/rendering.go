@@ -6,6 +6,21 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func (m *Model) renderAppShell(content string) string {
+	header := AppTitleStyle.Render("Insta Auto-Post")
+	
+	// Ensure content takes up available space minus header/footer
+	// We might need more sophisticated height calculation here later
+	
+	// For now, just join them
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		header,
+		"\n",
+		lipgloss.NewStyle().Margin(1, 2).Render(content),
+	)
+}
+
 func (m *Model) renderProcessingView() string {
 	spinner := m.spinner.View()
 
@@ -14,7 +29,7 @@ func (m *Model) renderProcessingView() string {
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(spinner+"  "+m.currentStatus),
 			"\n",
-			lipgloss.NewStyle().Foreground(ColorSubtle).Render("Hold tight, we're uploading to Instagram"),
+			lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Hold tight, we're uploading to Instagram"),
 		),
 	)
 
@@ -30,7 +45,7 @@ func (m *Model) renderProcessingView() string {
 
 	logMonitor := LogBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Foreground(ColorPrimary).Render("Activity Log"),
+			lipgloss.NewStyle().Bold(true).Foreground(Theme.Primary).Render("Activity Log"),
 			"\n",
 			strings.Join(logLines, "\n"),
 		),
@@ -56,7 +71,7 @@ func (m *Model) renderSuccessView() string {
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(icon+"  "+m.lastResult),
 			"\n",
-			lipgloss.NewStyle().Foreground(ColorSubtle).Render("Press any key to continue"),
+			lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Press any key to continue"),
 		),
 	)
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, successCard)

@@ -110,19 +110,22 @@ func (m *Model) View() string {
 
 	var content string
 	if m.isProcessing {
+		// Processing view handles its own layout for now (centered)
+		// We might want to wrap it in shell later, but for now keep as is or wrap it
 		content = m.renderProcessingView()
+		return DocStyle.Render(content)
 	} else if m.showSuccess {
 		content = m.renderSuccessView()
+		return DocStyle.Render(content)
 	} else {
 		content = m.renderCurrentView()
 	}
 
-	if m.isProcessing || m.showSuccess {
-		return DocStyle.Render(content)
-	}
-
 	footer := m.viewFooter()
-	return DocStyle.Render(content + "\n\n" + footer)
+	fullView := content + "\n\n" + footer
+	
+	// Wrap in App Shell
+	return m.renderAppShell(fullView)
 }
 
 func (m *Model) handleLogMsg(msg logMsg) {
