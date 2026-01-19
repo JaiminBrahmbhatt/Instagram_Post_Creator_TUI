@@ -7,9 +7,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/table"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
+	"github.com/charmbracelet/bubbles/table"
 )
 
 func (m *Model) enterBrowserDirectory() {
@@ -22,11 +22,25 @@ func (m *Model) enterBrowserDirectory() {
 	if strings.HasPrefix(name, "📁") || strings.Contains(name, "..") {
 		cleanName := strings.TrimPrefix(name, "📁 ")
 		cleanName = strings.TrimSuffix(cleanName, "/")
+
+		newDir := ""
 		if cleanName == ".." {
-			m.browserDir = filepath.Dir(m.browserDir)
+			newDir = filepath.Dir(m.browserDir)
 		} else {
-			m.browserDir = filepath.Join(m.browserDir, cleanName)
+			newDir = filepath.Join(m.browserDir, cleanName)
 		}
+
+		// Prevent breakout from photosDir if we are in Media Browser mode
+		if (m.currentView == BrowserView) && m.photosDir != "" {
+			absNew, _ := filepath.Abs(newDir)
+			absRoot, _ := filepath.Abs(m.photosDir)
+			rel, err := filepath.Rel(absRoot, absNew)
+			if err != nil || strings.HasPrefix(rel, "..") {
+				return
+			}
+		}
+
+		m.browserDir = newDir
 		m.refreshBrowserTable()
 		m.browserTable.GotoTop()
 	}
@@ -51,6 +65,15 @@ func (m *Model) handleBrowserSelection() {
 
 	fullPath := filepath.Join(m.browserDir, cleanName)
 	if isDir {
+		// Path traversal check
+		if (m.currentView == BrowserView) && m.photosDir != "" {
+			absNew, _ := filepath.Abs(fullPath)
+			absRoot, _ := filepath.Abs(m.photosDir)
+			rel, err := filepath.Rel(absRoot, absNew)
+			if err != nil || strings.HasPrefix(rel, "..") {
+				return
+			}
+		}
 		m.browserDir = fullPath
 		m.refreshBrowserTable()
 		m.browserTable.GotoTop()

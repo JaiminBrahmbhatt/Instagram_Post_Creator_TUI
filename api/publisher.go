@@ -71,7 +71,9 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 
 	// 5. Update status
-	s.DB.MarkPostPublished(postID)
+	if !dryRun {
+		s.DB.MarkPostPublished(postID)
+	}
 
 	if dryRun {
 		s.report("✅ [DRY RUN] Post %d complete", postID)

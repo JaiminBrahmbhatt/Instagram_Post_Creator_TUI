@@ -3,8 +3,8 @@ package tui
 import (
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func (m *Model) checkMediaCount() {
@@ -50,6 +50,18 @@ func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
 
 func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) {
 	m.caption = m.input.Value()
+
+	// Validation
+	if len(m.caption) > 2200 {
+		m.statusMsg = "Error: Caption exceeds 2200 character limit"
+		return
+	}
+
+	if len(m.selectedMedia) == 0 {
+		m.statusMsg = "Error: No media selected"
+		return
+	}
+
 	_, err := m.db.SavePost(m.caption, m.selectedMedia, scheduleTime, status)
 	if err != nil {
 		m.statusMsg = "Error saving post: " + err.Error()

@@ -30,7 +30,6 @@ const (
 // Request Types
 
 type MediaCreationRequest struct {
-	AccessToken    string    `json:"access_token"`
 	Caption        string    `json:"caption,omitempty"`
 	MediaType      MediaType `json:"media_type,omitempty"`
 	ImageURL       string    `json:"image_url,omitempty"`
@@ -40,8 +39,7 @@ type MediaCreationRequest struct {
 }
 
 type MediaPublishRequest struct {
-	AccessToken string `json:"access_token"`
-	CreationID  string `json:"creation_id"`
+	CreationID string `json:"creation_id"`
 }
 
 // Response Types

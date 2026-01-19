@@ -11,20 +11,21 @@ const (
 	serviceName = "instagram-post-creator"
 )
 
-// GetCredential retrieves a credential from environment variables first,
-// then falls back to the system keyring.
+// GetCredential retrieves a credential from the system keyring first,
+// then falls back to environment variables.
 func GetCredential(key string) string {
+	// Try keyring first
+	if secret, err := keyring.Get(serviceName, key); err == nil && secret != "" {
+		return secret
+	}
+
+	// Fallback to environment/dotenv
 	if val := os.Getenv(key); val != "" {
 		go syncToKeyring(key, val)
 		return val
 	}
 
-	secret, err := keyring.Get(serviceName, key)
-	if err != nil {
-		return ""
-	}
-
-	return secret
+	return ""
 }
 
 // SetCredential saves a credential to the system keyring.

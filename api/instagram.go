@@ -33,17 +33,15 @@ func (c *Client) CreateCarouselContainer(caption string, children []string) (str
 	}
 
 	req := MediaCreationRequest{
-		AccessToken: c.AccessToken,
-		Caption:     caption,
-		Children:    childrenStr,
-		MediaType:   MediaTypeCarousel,
+		Caption:   caption,
+		Children:  childrenStr,
+		MediaType: MediaTypeCarousel,
 	}
 	return c.makePostRequest("media", req)
 }
 
 func (c *Client) CreateMediaContainer(mediaURL, caption string, mediaType MediaType, isCarouselItem bool) (string, error) {
 	req := MediaCreationRequest{
-		AccessToken:    c.AccessToken,
 		Caption:        caption,
 		MediaType:      mediaType,
 		IsCarouselItem: isCarouselItem,
@@ -59,9 +57,15 @@ func (c *Client) CreateMediaContainer(mediaURL, caption string, mediaType MediaT
 }
 
 func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/%s/%s?fields=status_code&access_token=%s", APIVersion, containerID, c.AccessToken)
+	url := fmt.Sprintf("https://graph.instagram.com/%s/%s?fields=status_code", APIVersion, containerID)
 
-	resp, err := c.HTTPClient.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
+
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -80,9 +84,15 @@ func (c *Client) GetContainerStatus(containerID string) (ContainerStatus, error)
 }
 
 func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
-	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/content_publishing_limit?fields=config,quota_usage&access_token=%s", APIVersion, c.IGID, c.AccessToken)
+	url := fmt.Sprintf("https://graph.instagram.com/%s/%s/content_publishing_limit?fields=config,quota_usage", APIVersion, c.IGID)
 
-	resp, err := c.HTTPClient.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
+
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -106,8 +116,7 @@ func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
 
 func (c *Client) PublishContainer(containerID string) (string, error) {
 	req := MediaPublishRequest{
-		AccessToken: c.AccessToken,
-		CreationID:  containerID,
+		CreationID: containerID,
 	}
 	return c.makePostRequest("media_publish", req)
 }
@@ -153,6 +162,7 @@ func (c *Client) makePostRequest(endpoint string, payload any) (string, error) {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+c.AccessToken)
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {

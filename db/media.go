@@ -3,11 +3,36 @@ package db
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
 )
+
+func (db *Database) isPathSafe(path string) (bool, error) {
+	photosDir, err := db.GetSetting("photos_dir")
+	if err != nil || photosDir == "" {
+		return false, fmt.Errorf("photos_dir not configured")
+	}
+
+	absPhotosDir, err := filepath.Abs(photosDir)
+	if err != nil {
+		return false, err
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return false, err
+	}
+
+	rel, err := filepath.Rel(absPhotosDir, absPath)
+	if err != nil {
+		return false, err
+	}
+
+	return !strings.HasPrefix(rel, "..") && rel != "..", nil
+}
 
 func CalculateHash(filePath string) (string, error) {
 	file, err := os.Open(filePath)
@@ -66,6 +91,12 @@ func (db *Database) RunCleanup() error {
 		if err := rows.Scan(&path); err != nil {
 			continue
 		}
+
+		safe, err := db.isPathSafe(path)
+		if err != nil || !safe {
+			continue
+		}
+
 		if err := os.Remove(path); err != nil {
 			// Log error but continue
 			continue
@@ -94,6 +125,14 @@ func (db *Database) GetUnpostedMedia() ([]string, error) {
 }
 
 func (db *Database) RegisterMedia(path string) error {
+	safe, err := db.isPathSafe(path)
+	if err != nil {
+		return err
+	}
+	if !safe {
+		return fmt.Errorf("unauthorized path: %s (must be inside photos_dir)", path)
+	}
+
 	hash, err := CalculateHash(path)
 	if err != nil {
 		return err
