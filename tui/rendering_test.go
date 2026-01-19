@@ -34,3 +34,25 @@ func TestViewLayout(t *testing.T) {
 	// This is hard to test precisely without the implementation, but let's assume 
 	// we want a specific structure.
 }
+
+// Check that Composer uses the new styles
+func TestComposerLayout(t *testing.T) {
+	m := Model{
+		selectedMedia: []string{"test.jpg"},
+		input: NewCaptionInput(),
+		width: 80,
+		height: 24,
+	}
+	// We need to verify that viewComposer returns a string containing key elements
+	// viewComposer uses 'Theme' so it should work if Theme is initialized (it is var)
+	
+	output := m.viewComposer()
+	
+	if !strings.Contains(output, "Compose New Post") {
+		t.Error("Composer should have the new header")
+	}
+	
+	if !strings.Contains(output, "1 Files Selected") { // Badge text
+		t.Error("Composer should show file count badge")
+	}
+}

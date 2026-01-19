@@ -32,10 +32,27 @@ func (m *Model) viewComposer() string {
 		return "Done! Your post is live.\n\nPress 'q' or 'Esc' to return to the main menu."
 	}
 
-	return fmt.Sprintf(
-		"Composer (Enter: schedule NOW • d: save draft • q: cancel)\n\nSelected: %d files\n\n%s",
-		len(m.selectedMedia),
-		m.input.View(),
+	header := lipgloss.NewStyle().Bold(true).Foreground(Theme.Primary).Render("Compose New Post")
+	
+	fileCountBadge := BadgeStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
+
+	inputBox := CardStyle.Render(m.input.View())
+
+	helpText := lipgloss.NewStyle().Foreground(Theme.Subtle).Render(
+		"Actions:\n" +
+		"• Enter: Schedule/Post Now\n" +
+		"• d:     Save as Draft\n" +
+		"• q:     Cancel",
+	)
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		"\n",
+		fileCountBadge,
+		"\n",
+		inputBox,
+		"\n",
+		helpText,
 	)
 }
 

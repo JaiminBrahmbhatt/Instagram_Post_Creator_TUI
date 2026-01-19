@@ -30,6 +30,10 @@ func NewBrowserTable() table.Model {
 func NewCaptionInput() textinput.Model {
 	ti := textinput.New()
 	ti.Placeholder = "Write your caption here..."
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
 	return ti
 }
 
