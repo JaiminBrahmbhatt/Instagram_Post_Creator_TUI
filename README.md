@@ -13,6 +13,7 @@ A powerful, high-performance terminal tool to manage, schedule, and automate Ins
 - ⏳ **Smart Scheduler**: Background processing engine that polls Instagram container status to ensure reliable media publishing.
 - 📝 **Post Composer**: Dynamic captioning with support for both immediate scheduling and draft persistence.
 - 💾 **SQLite Persistence**: Reliable storage for posts, drafts, and application settings.
+- 🚇 **Native Tunneling**: Built-in Ngrok integration automatically exposes your local photos to Instagram secure and fast.
 - 🧹 **Auto-Cleanup**: Optional feature to delete posted media after 30 days, keeping your storage lean.
 - 🧪 **Dry Run Mode**: Validate your entire workflow and API interactions without actually publishing to Instagram.
 
@@ -23,7 +24,7 @@ A powerful, high-performance terminal tool to manage, schedule, and automate Ins
 - **Go 1.21+** installed on your system.
 - **Instagram Business Account** linked to a Facebook Page.
 - **Facebook Developer App** with the `instagram_content_publishing` permission.
-- A public URL (e.g., via `ngrok` or a VPS) if you are not running in DRY_RUN mode, as Instagram needs to pull media from a public link.
+- **Ngrok Account:** A free [Ngrok Authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) is required to automatically create a secure tunnel for your local media files.
 
 ### 2. Configuration
 
@@ -45,6 +46,8 @@ INSTA_APP_SECRET=your_app_secret
 # App Settings
 DRY_RUN=true                    # Set to false for production
 ```
+
+> **Note:** You can enter your **Ngrok Authtoken** directly in the application's **Settings** menu.
 
 ### 3. Installation & Usage
 
