@@ -6,17 +6,17 @@ import (
 	"net/http"
 	"sync"
 
-	"golang.ngrok.com/ngrok"
-	"golang.ngrok.com/ngrok/config"
+	"golang.ngrok.com/ngrok/v2"
 )
 
 var (
 	tunnelURL string
 	tunnelMu  sync.RWMutex
-	session   ngrok.Session
+	listener  ngrok.EndpointListener
+	agent     ngrok.Agent
 )
 
-// StartTunnel starts an ngrok tunnel and serves the provided handler.
+// StartTunnel starts an ngrok tunnel using the v2 API and serves the provided handler.
 func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (string, error) {
 	tunnelMu.Lock()
 	defer tunnelMu.Unlock()
@@ -29,25 +29,26 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 		return "", fmt.Errorf("ngrok auth token is required")
 	}
 
-	sess, err := ngrok.Connect(ctx,
-		ngrok.WithAuthtoken(authToken),
-	)
+	a, err := ngrok.NewAgent(ngrok.WithAuthtoken(authToken))
 	if err != nil {
-		return "", fmt.Errorf("failed to connect to ngrok: %w", err)
+		return "", fmt.Errorf("failed to create ngrok agent: %w", err)
 	}
-	session = sess
+	agent = a
 
-	tun, err := sess.Listen(ctx,
-		config.HTTPEndpoint(),
-	)
+	if err := a.Connect(ctx); err != nil {
+		return "", fmt.Errorf("failed to connect ngrok agent: %w", err)
+	}
+
+	l, err := a.Listen(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to start ngrok tunnel: %w", err)
 	}
 
-	tunnelURL = tun.URL()
+	listener = l
+	tunnelURL = l.URL().String()
 
 	go func() {
-		if err := http.Serve(tun, handler); err != nil {
+		if err := http.Serve(l, handler); err != nil {
 			// In a real app, we'd handle this error better
 		}
 	}()
@@ -55,14 +56,15 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	return tunnelURL, nil
 }
 
-// StopTunnel closes the active ngrok tunnel.
+// StopTunnel closes the active ngrok tunnel and disconnects the agent.
 func StopTunnel() error {
 	tunnelMu.Lock()
 	defer tunnelMu.Unlock()
 
-	if session != nil {
-		err := session.Close()
-		session = nil
+	if agent != nil {
+		err := agent.Disconnect()
+		agent = nil
+		listener = nil
 		tunnelURL = ""
 		return err
 	}
