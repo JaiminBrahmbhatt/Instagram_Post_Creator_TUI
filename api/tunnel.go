@@ -3,8 +3,11 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"sync"
+	"time"
 
 	"golang.ngrok.com/ngrok/v2"
 )
@@ -13,7 +16,6 @@ var (
 	tunnelURL string
 	tunnelMu  sync.RWMutex
 	listener  ngrok.EndpointListener
-	agent     ngrok.Agent
 )
 
 // StartTunnel starts an ngrok tunnel using the v2 API and serves the provided handler.
@@ -21,8 +23,9 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	// Fast check with read lock
 	tunnelMu.RLock()
 	if tunnelURL != "" {
-		defer tunnelMu.RUnlock()
-		return tunnelURL, nil
+		url := tunnelURL
+		tunnelMu.RUnlock()
+		return url, nil
 	}
 	tunnelMu.RUnlock()
 
@@ -30,46 +33,47 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 		return "", fmt.Errorf("ngrok auth token is required")
 	}
 
-	// Connect to ngrok (Slow Network Operation - No Lock held here)
-	a, err := ngrok.NewAgent(ngrok.WithAuthtoken(authToken))
-	if err != nil {
-		return "", fmt.Errorf("failed to create ngrok agent: %w", err)
-	}
+	log.Println("[Ngrok] Setting up tunnel...")
+	
+	// Set the token in environment as expected by the ngrok-go DefaultAgent
+	os.Setenv("NGROK_AUTHTOKEN", authToken)
 
-	if err := a.Connect(ctx); err != nil {
-		return "", fmt.Errorf("failed to connect ngrok agent: %w", err)
-	}
+	// Create a timeout context for the connection process
+	connectCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
 
-	l, err := a.Listen(ctx)
+	log.Println("[Ngrok] Calling ngrok.Listen...")
+	l, err := ngrok.Listen(connectCtx)
 	if err != nil {
+		log.Printf("[Ngrok] Listen failed: %v", err)
 		return "", fmt.Errorf("failed to start ngrok tunnel: %w", err)
 	}
+	log.Printf("[Ngrok] Tunnel established at %s", l.URL())
 
-	// Update state (Fast Operation - Lock held here)
+	// Update state
 	tunnelMu.Lock()
-	defer tunnelMu.Unlock()
-
-	agent = a
 	listener = l
 	tunnelURL = l.URL().String()
+	tunnelMu.Unlock()
 
 	go func() {
-		if err := http.Serve(l, handler); err != nil {
-			// In a real app, we'd handle this error better
+		log.Println("[Ngrok] Starting HTTP server on tunnel...")
+		if err := http.Serve(l, handler); err != nil && err != http.ErrServerClosed {
+			log.Printf("[Ngrok] Tunnel server error: %v", err)
 		}
 	}()
 
 	return tunnelURL, nil
 }
 
-// StopTunnel closes the active ngrok tunnel and disconnects the agent.
+// StopTunnel closes the active ngrok tunnel.
 func StopTunnel() error {
 	tunnelMu.Lock()
 	defer tunnelMu.Unlock()
 
-	if agent != nil {
-		err := agent.Disconnect()
-		agent = nil
+	if listener != nil {
+		log.Println("[Ngrok] Stopping tunnel...")
+		err := listener.Close()
 		listener = nil
 		tunnelURL = ""
 		return err
