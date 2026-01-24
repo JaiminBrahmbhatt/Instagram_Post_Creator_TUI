@@ -18,22 +18,23 @@ var (
 
 // StartTunnel starts an ngrok tunnel using the v2 API and serves the provided handler.
 func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (string, error) {
-	tunnelMu.Lock()
-	defer tunnelMu.Unlock()
-
+	// Fast check with read lock
+	tunnelMu.RLock()
 	if tunnelURL != "" {
+		defer tunnelMu.RUnlock()
 		return tunnelURL, nil
 	}
+	tunnelMu.RUnlock()
 
 	if authToken == "" {
 		return "", fmt.Errorf("ngrok auth token is required")
 	}
 
+	// Connect to ngrok (Slow Network Operation - No Lock held here)
 	a, err := ngrok.NewAgent(ngrok.WithAuthtoken(authToken))
 	if err != nil {
 		return "", fmt.Errorf("failed to create ngrok agent: %w", err)
 	}
-	agent = a
 
 	if err := a.Connect(ctx); err != nil {
 		return "", fmt.Errorf("failed to connect ngrok agent: %w", err)
@@ -44,6 +45,11 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 		return "", fmt.Errorf("failed to start ngrok tunnel: %w", err)
 	}
 
+	// Update state (Fast Operation - Lock held here)
+	tunnelMu.Lock()
+	defer tunnelMu.Unlock()
+
+	agent = a
 	listener = l
 	tunnelURL = l.URL().String()
 
