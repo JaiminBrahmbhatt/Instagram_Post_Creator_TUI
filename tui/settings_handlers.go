@@ -188,7 +188,7 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 			if err := api.SaveNgrokToken(token); err != nil {
 				m.statusMsg = "Error saving Ngrok token: " + err.Error()
 			} else {
-				m.statusMsg = "Ngrok token saved!"
+				m.statusMsg = "Token saved! Restart to activate tunnel."
 			}
 			m.ngrokInput.Blur()
 			m.currentView = SettingsView
