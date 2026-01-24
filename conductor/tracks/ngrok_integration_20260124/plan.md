@@ -9,7 +9,7 @@ Goal: Implement secure storage and retrieval of the Ngrok Auth Token using `go-k
     - [ ] Create `api/auth.go` (if not exists) or update it to handle Ngrok tokens.
     - [ ] Write tests for saving and retrieving the token from the keyring.
     - [ ] Implement `SaveNgrokToken(token string)` and `GetNgrokToken()`.
-- [ ] Task: Update Settings TUI for Ngrok Token
+- [x] Task: Update Settings TUI for Ngrok Token 62d7b5a
     - [ ] Add `NgrokToken` field to the Settings model in `tui/model.go`.
     - [ ] Update `tui/views.go` to render a password-masked input for the token.
     - [ ] Implement handler in `tui/settings_handlers.go` to save the token to the keyring.
