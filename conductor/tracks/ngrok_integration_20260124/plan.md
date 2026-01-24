@@ -31,7 +31,7 @@ Goal: Integrate `ngrok-go` library and implement tunnel lifecycle management.
 ## Phase 3: Integration & UI Visibility
 Goal: Use the tunnel URL in the publishing flow and display status in the TUI.
 
-- [ ] Task: Update Publisher to Use Tunnel URL
+- [x] Task: Update Publisher to Use Tunnel URL 878d390
     - [ ] Modify `api/publisher.go` to use the dynamic ngrok URL instead of a hardcoded or env-based host.
     - [ ] Update media container creation logic to point to the ngrok-provided public endpoint.
 - [ ] Task: Display Tunnel Status in Dashboard
