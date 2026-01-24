@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	serviceName = "instagram-post-creator"
+	serviceName   = "instagram-post-creator"
+	ngrokTokenKey = "ngrok_auth_token"
 )
 
 // GetCredential retrieves a credential from the system keyring first,
@@ -31,6 +32,16 @@ func GetCredential(key string) string {
 // SetCredential saves a credential to the system keyring.
 func SetCredential(key, value string) error {
 	return keyring.Set(serviceName, key, value)
+}
+
+// GetNgrokToken retrieves the Ngrok auth token from the keyring.
+func GetNgrokToken() string {
+	return GetCredential(ngrokTokenKey)
+}
+
+// SaveNgrokToken saves the Ngrok auth token to the keyring.
+func SaveNgrokToken(token string) error {
+	return SetCredential(ngrokTokenKey, token)
 }
 
 func syncToKeyring(key, value string) {
