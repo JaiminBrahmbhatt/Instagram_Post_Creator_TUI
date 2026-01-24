@@ -98,6 +98,7 @@ func NewSettingsList() list.Model {
 	items := []list.Item{
 		item{title: SettingsTitlePhotosDir, desc: "Set the root folder for media browsing"},
 		item{title: SettingsTitleCleanup, desc: "Toggle 30-day post cleanup"},
+		item{title: SettingsTitleNgrok, desc: "Manage Ngrok Auth Token"},
 		item{title: SettingsTitleEnv, desc: "Update API Keys and Dry Run Mode"},
 	}
 	l := list.New(items, NewCustomDelegate(), 0, 0)
@@ -153,4 +154,18 @@ func NewEnvInputs() []textinput.Model {
 	inputs[2].Width = 10
 
 	return inputs
+}
+
+func NewNgrokInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Enter Ngrok Auth Token"
+	ti.EchoMode = textinput.EchoPassword
+	ti.EchoCharacter = '•'
+	ti.CharLimit = 128
+	ti.Width = 50
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	return ti
 }

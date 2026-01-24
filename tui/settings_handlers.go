@@ -53,6 +53,10 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 		case SettingsTitleCleanup:
 			m.setupStep = 1 // Reuse setup cleanup view
 			m.currentView = SetupView
+		case SettingsTitleNgrok:
+			m.currentView = SettingsNgrokView
+			m.ngrokInput.SetValue(api.GetNgrokToken())
+			m.ngrokInput.Focus()
 		case SettingsTitleEnv:
 			m.currentView = SettingsAuthView
 			m.authFocusIndex = 0
@@ -171,4 +175,27 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 	}
 
 	return tea.Batch(cmds...)
+}
+
+func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
+	var cmd tea.Cmd
+	m.ngrokInput, cmd = m.ngrokInput.Update(msg)
+
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch {
+		case key.Matches(keyMsg, Keys.Enter):
+			token := m.ngrokInput.Value()
+			if err := api.SaveNgrokToken(token); err != nil {
+				m.statusMsg = "Error saving Ngrok token: " + err.Error()
+			} else {
+				m.statusMsg = "Ngrok token saved!"
+			}
+			m.ngrokInput.Blur()
+			m.currentView = SettingsView
+		case key.Matches(keyMsg, Keys.Back):
+			m.ngrokInput.Blur()
+			m.currentView = SettingsView
+		}
+	}
+	return cmd
 }

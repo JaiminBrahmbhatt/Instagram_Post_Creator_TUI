@@ -9,5 +9,6 @@ const (
 	// Settings Sub-Menu Items
 	SettingsTitlePhotosDir = "Change Photos Directory"
 	SettingsTitleCleanup   = "Auto Cleanup"
+	SettingsTitleNgrok     = "Ngrok Configuration"
 	SettingsTitleEnv       = "Environment Configuration"
 )

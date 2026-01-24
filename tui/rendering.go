@@ -91,6 +91,8 @@ func (m *Model) renderCurrentView() string {
 		return "Scheduled Posts & History (q: back)\n\n" + m.table.View()
 	case SettingsAuthView:
 		return m.viewSettingsAuth()
+	case SettingsNgrokView:
+		return m.viewSettingsNgrok()
 	case SettingsDirView:
 		return m.viewSettingsDir()
 	case SettingsView:

@@ -29,6 +29,7 @@ type Model struct {
 	fp               filepicker.Model
 	help             help.Model
 	input            textinput.Model
+	ngrokInput       textinput.Model
 	isProcessing     bool
 	lastLogs         []string
 	list             list.Model
@@ -176,6 +177,8 @@ func (m *Model) updateViewLogic(msg tea.Msg) tea.Cmd {
 		return cmd
 	case SettingsAuthView:
 		return m.updateSettingsAuthView(msg)
+	case SettingsNgrokView:
+		return m.updateSettingsNgrokView(msg)
 	case SettingsDirView:
 		return m.updateSettingsDirView(msg)
 	case SettingsView:

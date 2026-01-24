@@ -17,6 +17,7 @@ const (
 	SettingsView
 	SettingsDirView
 	SettingsAuthView
+	SettingsNgrokView
 	ComposerView
 )
 

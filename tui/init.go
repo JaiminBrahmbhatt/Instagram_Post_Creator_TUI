@@ -19,6 +19,7 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		fp:               NewFilePicker(),
 		help:             help.New(),
 		input:            NewCaptionInput(),
+		ngrokInput:       NewNgrokInput(),
 		list:             NewMenu(),
 		settingsList:     NewSettingsList(),
 		table:            NewPostsTable(),
