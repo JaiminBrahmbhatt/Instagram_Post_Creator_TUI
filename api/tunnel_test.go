@@ -20,3 +20,14 @@ func TestGetTunnelURL(t *testing.T) {
 		t.Errorf("Expected empty URL initially, got %s", url)
 	}
 }
+
+func TestStopTunnelIdempotent(t *testing.T) {
+	// Ensure it's stopped
+	StopTunnel()
+
+	// Call again
+	err := StopTunnel()
+	if err != nil {
+		t.Errorf("StopTunnel should be safe to call multiple times, got: %v", err)
+	}
+}
