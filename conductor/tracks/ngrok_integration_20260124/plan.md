@@ -44,7 +44,7 @@ Goal: Ensure graceful shutdown and remove obsolete environment variables.
 
 - [x] Task: Graceful Shutdown Implementation 6f3f63f
     - [ ] Ensure `StopTunnel()` is called during the application's cleanup phase in `main.go`.
-- [ ] Task: Documentation & Cleanup
+- [x] Task: Documentation & Cleanup 864b89e
     - [ ] Update `README.md` and `.env.example` to reflect the new Ngrok token requirement.
     - [ ] Remove any logic related to `DRY_RUN` host overrides that are now redundant.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Final Polish & Cleanup' (Protocol in workflow.md)
