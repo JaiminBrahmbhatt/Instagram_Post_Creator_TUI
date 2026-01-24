@@ -23,7 +23,7 @@ Goal: Integrate `ngrok-go` library and implement tunnel lifecycle management.
     - [ ] Create `api/tunnel.go` to manage the ngrok session and tunnel.
     - [ ] Write tests for tunnel lifecycle (Mocking ngrok session if possible).
     - [ ] Implement `StartTunnel(ctx, token)` and `StopTunnel()`.
-- [ ] Task: Integrate Tunnel with Application Startup
+- [x] Task: Integrate Tunnel with Application Startup 2b6e14e
     - [ ] Update `cmd/post-creator/main.go` to initialize the tunnel on startup if a token exists.
     - [ ] Ensure the tunnel URL is captured and stored in the application state.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Native Tunnel Implementation' (Protocol in workflow.md)
