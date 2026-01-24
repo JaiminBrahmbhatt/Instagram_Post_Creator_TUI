@@ -13,7 +13,7 @@ Goal: Implement secure storage and retrieval of the Ngrok Auth Token using `go-k
     - [ ] Add `NgrokToken` field to the Settings model in `tui/model.go`.
     - [ ] Update `tui/views.go` to render a password-masked input for the token.
     - [ ] Implement handler in `tui/settings_handlers.go` to save the token to the keyring.
-- [ ] Task: Conductor - User Manual Verification 'Phase 1: Secure Token Management' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Secure Token Management' (Protocol in workflow.md) d6da22c
 
 ## Phase 2: Native Tunnel Implementation
 Goal: Integrate `ngrok-go` library and implement tunnel lifecycle management.
