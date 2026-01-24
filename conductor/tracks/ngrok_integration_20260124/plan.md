@@ -39,7 +39,7 @@ Goal: Use the tunnel URL in the publishing flow and display status in the TUI.
     - [ ] Update `tui/views.go` (Dashboard) to display "Tunnel: Active [URL]" or "Tunnel: Inactive".
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Integration & UI Visibility' (Protocol in workflow.md) bdfb317
 
-## Phase 4: Final Polish & Cleanup
+## Phase 4: Final Polish & Cleanup [checkpoint: 379a612]
 Goal: Ensure graceful shutdown and remove obsolete environment variables.
 
 - [x] Task: Graceful Shutdown Implementation 6f3f63f
