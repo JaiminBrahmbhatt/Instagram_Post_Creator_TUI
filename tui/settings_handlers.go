@@ -192,6 +192,12 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 			}
 			m.ngrokInput.Blur()
 			m.currentView = SettingsView
+		case keyMsg.String() == "v":
+			if m.ngrokInput.EchoMode == textinput.EchoPassword {
+				m.ngrokInput.EchoMode = textinput.EchoNormal
+			} else {
+				m.ngrokInput.EchoMode = textinput.EchoPassword
+			}
 		case key.Matches(keyMsg, Keys.Back):
 			m.ngrokInput.Blur()
 			m.currentView = SettingsView

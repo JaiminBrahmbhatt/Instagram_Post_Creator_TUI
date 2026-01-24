@@ -187,6 +187,6 @@ func (m *Model) viewSettingsNgrok() string {
 	b.WriteString(TitleStyle.Render("Ngrok Configuration") + "\n\n")
 	b.WriteString("Enter your Ngrok Authtoken below. This is required for creating a public tunnel to your local media files.\n\n")
 	b.WriteString("Token: " + m.ngrokInput.View() + "\n\n")
-	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(Enter: Save • Back: Cancel)"))
+	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(Enter: Save • v: Toggle Visibility • Back: Cancel)"))
 	return b.String()
 }
