@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
@@ -74,21 +74,24 @@ func main() {
 		}
 	}()
 
-	// Automatic Cloudflare Tunnel
+	// Automatic Ngrok Tunnel
 	if os.Getenv("SKIP_TUNNEL") != "true" {
-		// Only attempt if cloudflared is installed
-		if _, err := exec.LookPath("cloudflared"); err == nil {
-			log.Println("Attempting to start Cloudflare tunnel...")
-			url, cleanup, err := startTunnel(8080)
+		token := api.GetNgrokToken()
+		if token != "" {
+			log.Println("Attempting to start native Ngrok tunnel...")
+			url, err := api.StartTunnel(context.Background(), token, mux)
 			if err != nil {
-				log.Printf("⚠️ Failed to start Cloudflare tunnel: %v. Ensure PUBLIC_URL_PREFIX is set manually.", err)
+				log.Printf("⚠️ Failed to start Ngrok tunnel: %v", err)
 			} else {
-				log.Printf("Tunnel active! Setting PUBLIC_URL_PREFIX=%s", url)
+				log.Printf("Tunnel active! Public URL: %s", url)
+				if !strings.HasSuffix(url, "/") {
+					url += "/"
+				}
 				os.Setenv("PUBLIC_URL_PREFIX", url)
-				defer cleanup()
+				defer api.StopTunnel()
 			}
 		} else {
-			log.Println("cloudflared not found in PATH. Skipping auto-tunnel.")
+			log.Println("Ngrok token not found in keyring. Skipping auto-tunnel.")
 		}
 	}
 
