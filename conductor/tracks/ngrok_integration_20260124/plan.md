@@ -34,7 +34,7 @@ Goal: Use the tunnel URL in the publishing flow and display status in the TUI.
 - [x] Task: Update Publisher to Use Tunnel URL 878d390
     - [ ] Modify `api/publisher.go` to use the dynamic ngrok URL instead of a hardcoded or env-based host.
     - [ ] Update media container creation logic to point to the ngrok-provided public endpoint.
-- [ ] Task: Display Tunnel Status in Dashboard
+- [x] Task: Display Tunnel Status in Dashboard ac9172a
     - [ ] Update `tui/model.go` to track tunnel status and public URL.
     - [ ] Update `tui/views.go` (Dashboard) to display "Tunnel: Active [URL]" or "Tunnel: Inactive".
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Integration & UI Visibility' (Protocol in workflow.md)
