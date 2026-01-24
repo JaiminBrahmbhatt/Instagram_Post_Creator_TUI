@@ -28,7 +28,7 @@ Goal: Integrate `ngrok-go` library and implement tunnel lifecycle management.
     - [ ] Ensure the tunnel URL is captured and stored in the application state.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Native Tunnel Implementation' (Protocol in workflow.md)
 
-## Phase 3: Integration & UI Visibility
+## Phase 3: Integration & UI Visibility [checkpoint: 862b4f3]
 Goal: Use the tunnel URL in the publishing flow and display status in the TUI.
 
 - [x] Task: Update Publisher to Use Tunnel URL 878d390
