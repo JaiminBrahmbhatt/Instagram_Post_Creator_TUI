@@ -18,7 +18,7 @@ Goal: Implement secure storage and retrieval of the Ngrok Auth Token using `go-k
 ## Phase 2: Native Tunnel Implementation
 Goal: Integrate `ngrok-go` library and implement tunnel lifecycle management.
 
-- [ ] Task: Implement Ngrok Tunnel Manager
+- [x] Task: Implement Ngrok Tunnel Manager f98040d
     - [ ] Add `github.com/ngrok/ngrok-go` to `go.mod`.
     - [ ] Create `api/tunnel.go` to manage the ngrok session and tunnel.
     - [ ] Write tests for tunnel lifecycle (Mocking ngrok session if possible).
