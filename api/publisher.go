@@ -39,10 +39,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 
 	if dryRun {
-		urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
-		if urlPrefix == "" {
-			urlPrefix = "https://example.com/"
-		}
+		urlPrefix := getPublicURLPrefix()
 		s.report("[DRY RUN] Would upload %d files to %s", len(mediaPaths), urlPrefix)
 	} else {
 		carouselID, err := s.createContainers(mediaPaths, caption)
@@ -82,10 +79,7 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 }
 
 func (s *Scheduler) createContainers(mediaPaths []string, caption string) (string, error) {
-	urlPrefix := os.Getenv("PUBLIC_URL_PREFIX")
-	if urlPrefix == "" {
-		urlPrefix = "https://example.com/"
-	}
+	urlPrefix := getPublicURLPrefix()
 
 	var itemIDs []string
 	isCarousel := len(mediaPaths) > 1
@@ -156,3 +150,20 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 	}
 	return itemIDs[0], nil
 }
+
+func getPublicURLPrefix() string {
+	if url := GetTunnelURL(); url != "" {
+		if !strings.HasSuffix(url, "/") {
+			url += "/"
+		}
+		return url
+	}
+	if url := os.Getenv("PUBLIC_URL_PREFIX"); url != "" {
+		if !strings.HasSuffix(url, "/") {
+			url += "/"
+		}
+		return url
+	}
+	return "https://example.com/"
+}
+
