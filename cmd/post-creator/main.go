@@ -78,18 +78,21 @@ func main() {
 	if os.Getenv("SKIP_TUNNEL") != "true" {
 		token := api.GetNgrokToken()
 		if token != "" {
-			log.Println("Attempting to start native Ngrok tunnel...")
-			url, err := api.StartTunnel(context.Background(), token, mux)
-			if err != nil {
-				log.Printf("⚠️ Failed to start Ngrok tunnel: %v", err)
-			} else {
-				log.Printf("Tunnel active! Public URL: %s", url)
-				if !strings.HasSuffix(url, "/") {
-					url += "/"
+			// Start in background to not block TUI
+			go func() {
+				log.Println("Attempting to start native Ngrok tunnel...")
+				url, err := api.StartTunnel(context.Background(), token, mux)
+				if err != nil {
+					log.Printf("⚠️ Failed to start Ngrok tunnel: %v", err)
+				} else {
+					log.Printf("Tunnel active! Public URL: %s", url)
+					if !strings.HasSuffix(url, "/") {
+						url += "/"
+					}
+					os.Setenv("PUBLIC_URL_PREFIX", url)
 				}
-				os.Setenv("PUBLIC_URL_PREFIX", url)
-				defer api.StopTunnel()
-			}
+			}()
+			defer api.StopTunnel()
 		} else {
 			log.Println("Ngrok token not found in keyring. Skipping auto-tunnel.")
 		}
