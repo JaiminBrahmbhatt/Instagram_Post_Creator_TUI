@@ -2,7 +2,7 @@
 
 This plan outlines the integration of `ngrok-go` into the `insta_auto_post` project to replace external tunnel binaries.
 
-## Phase 1: Secure Token Management
+## Phase 1: Secure Token Management [checkpoint: 38162ec]
 Goal: Implement secure storage and retrieval of the Ngrok Auth Token using `go-keyring`.
 
 - [x] Task: Implement Ngrok Token Storage Logic 3cede30
