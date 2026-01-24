@@ -42,7 +42,7 @@ Goal: Use the tunnel URL in the publishing flow and display status in the TUI.
 ## Phase 4: Final Polish & Cleanup
 Goal: Ensure graceful shutdown and remove obsolete environment variables.
 
-- [ ] Task: Graceful Shutdown Implementation
+- [x] Task: Graceful Shutdown Implementation 6f3f63f
     - [ ] Ensure `StopTunnel()` is called during the application's cleanup phase in `main.go`.
 - [ ] Task: Documentation & Cleanup
     - [ ] Update `README.md` and `.env.example` to reflect the new Ngrok token requirement.
