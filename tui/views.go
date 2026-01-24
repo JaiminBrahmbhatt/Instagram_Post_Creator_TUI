@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 func (m *Model) viewBrowser() string {
@@ -58,17 +59,29 @@ func (m *Model) viewComposer() string {
 
 func (m *Model) viewDashboard() string {
 	title := TitleStyle.Render("Instagram API Limits")
-	
+
 	quotaText := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 	if m.quotaTotal == 0 {
 		quotaText = "Loading or unavailable..."
 	}
-	
+
 	usageCard := CardStyle.Render(quotaText)
-	
+
+	// Tunnel Status
+	tunnelTitle := TitleStyle.Render("Tunnel Status")
+	tunnelURL := api.GetTunnelURL()
+	status := "Inactive"
+	if tunnelURL != "" {
+		status = "Active: " + tunnelURL
+	}
+	tunnelCard := CardStyle.Render(status)
+
 	return lipgloss.JoinVertical(lipgloss.Left,
 		title,
 		usageCard,
+		"\n",
+		tunnelTitle,
+		tunnelCard,
 		"\n",
 		lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(24-hour moving window)"),
 		"\n",
