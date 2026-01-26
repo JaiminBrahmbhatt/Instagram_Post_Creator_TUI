@@ -2,6 +2,8 @@ al.essio.dev/pkg/shellescape v1.5.1 h1:86HrALUujYS/h+GtqoB26SBEdkWfmMI6FubjXlsXy
 al.essio.dev/pkg/shellescape v1.5.1/go.mod h1:6sIqp7X2P6mThCQ7twERpZTuigpr6KbZWtls1U8I890=
 github.com/JaiminBrahmbhatt/insta-go-sdk v1.0.2 h1:3NZK7SPzT3nyRT6zE4aiwmiztmBqRZYZkkIPs2cTlCQ=
 github.com/JaiminBrahmbhatt/insta-go-sdk v1.0.2/go.mod h1:4hRSvmjVPLvriWyLWNa7Gpxs/dZDxo8M0NOb/TfPYb0=
+github.com/JaiminBrahmbhatt/insta-go-sdk v1.0.3-0.20260126043611-3c43ca5aab02 h1:yXOh5d+vnAV+xyfS7RtC2RwwdeP4F51yU4dFOwdnr+8=
+github.com/JaiminBrahmbhatt/insta-go-sdk v1.0.3-0.20260126043611-3c43ca5aab02/go.mod h1:4hRSvmjVPLvriWyLWNa7Gpxs/dZDxo8M0NOb/TfPYb0=
 github.com/atotto/clipboard v0.1.4 h1:EH0zSVneZPSuFR11BlR9YppQTVDbh5+16AmcJi4g1z4=
 github.com/atotto/clipboard v0.1.4/go.mod h1:ZY9tmq7sm5xIbd9bOK4onWV4S6X0u6GY7Vn0Yu86PYI=
 github.com/aymanbagabas/go-osc52/v2 v2.0.1 h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=

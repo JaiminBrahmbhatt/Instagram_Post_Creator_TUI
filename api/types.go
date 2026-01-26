@@ -37,14 +37,4 @@ type ContainerStatusResponse struct {
 	StatusCode ContainerStatus `json:"status_code"`
 }
 
-type LimitResponse struct {
-	Data []PublishingLimit `json:"data"`
-}
-
-type PublishingLimit struct {
-	Config struct {
-		QuotaDuration int `json:"quota_duration"`
-		QuotaTotal    int `json:"quota_total"`
-	} `json:"config"`
-	QuotaUsage int `json:"quota_usage"`
-}
+type PublishingLimit = instagram.PublishingLimit
