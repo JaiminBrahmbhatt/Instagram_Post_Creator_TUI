@@ -3,13 +3,13 @@ package tui
 import (
 	"os"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 func NewBrowserTable() table.Model {
@@ -30,10 +30,10 @@ func NewBrowserTable() table.Model {
 func NewCaptionInput() textinput.Model {
 	ti := textinput.New()
 	ti.Placeholder = "Write your caption here..."
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
-	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
 	return ti
 }
 
@@ -44,12 +44,12 @@ func NewFilePicker() filepicker.Model {
 	fp.SetHeight(20)
 
 	// Apply Theme
-	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	fp.Styles.Selected = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
-	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Highlight)
-	fp.Styles.File = lipgloss.NewStyle().Foreground(Theme.Text)
-	fp.Styles.DisabledFile = lipgloss.NewStyle().Foreground(Theme.Subtle)
-	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Info)
+	fp.Styles.File = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	fp.Styles.DisabledFile = lipgloss.NewStyle().Foreground(Theme.TextTertiary)
+	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
 
 	return fp
 }
@@ -118,7 +118,7 @@ func getTableStyles() table.Styles {
 	s := table.DefaultStyles()
 	s.Header = s.Header.
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(Theme.Subtle).
+		BorderForeground(Theme.Border).
 		BorderBottom(true).
 		Bold(false)
 	s.Selected = s.Selected.
@@ -163,10 +163,10 @@ func NewNgrokInput() textinput.Model {
 	ti.EchoCharacter = '•'
 	ti.CharLimit = 128
 	ti.Width = 50
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
-	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
 	return ti
 }
 
@@ -175,9 +175,9 @@ func NewDomainInput() textinput.Model {
 	ti.Placeholder = "e.g. your-domain.ngrok-free.app (Optional)"
 	ti.CharLimit = 128
 	ti.Width = 50
-	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
-	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
-	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
 	return ti
 }

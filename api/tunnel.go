@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"sync"
-	"time"
 
 	"golang.ngrok.com/ngrok/v2"
 )
@@ -34,23 +32,28 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	}
 
 	log.Println("[Ngrok] Setting up tunnel...")
-	
-	// Set the token in environment as expected by the ngrok-go DefaultAgent
-	os.Setenv("NGROK_AUTHTOKEN", authToken)
 
-	// Create a timeout context for the connection process
-	connectCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
+	log.Println("[Ngrok] Creating ngrok agent with authtoken...")
 
-	log.Println("[Ngrok] Calling ngrok.Listen...")
-	
+	// Create an agent with the authtoken
+	agent, err := ngrok.NewAgent(ngrok.WithAuthtoken(authToken))
+	if err != nil {
+		log.Printf("[Ngrok] Failed to create agent: %v", err)
+		return "", fmt.Errorf("failed to create ngrok agent: %w", err)
+	}
+
+	log.Println("[Ngrok] Calling agent.Listen...")
+
+	// Build endpoint options
 	opts := []ngrok.EndpointOption{}
 	if domain := GetNgrokDomain(); domain != "" {
 		log.Printf("[Ngrok] Using static domain: %s", domain)
 		opts = append(opts, ngrok.WithURL(domain))
 	}
 
-	l, err := ngrok.Listen(connectCtx, opts...)
+	// Use the parent context, not a timeout context
+	// The listener must stay alive after this function returns
+	l, err := agent.Listen(ctx, opts...)
 	if err != nil {
 		log.Printf("[Ngrok] Listen failed: %v", err)
 		return "", fmt.Errorf("failed to start ngrok tunnel: %w", err)

@@ -1,10 +1,10 @@
-/post-creator
-post_creator.db
+.agent/
 .DS_Store
-/photos
 .env
-debug.log
-
-main
 .gemini-clipboard/
 /conductor
+/photos
+/post-creator
+debug.log
+main
+post_creator.db

@@ -7,18 +7,66 @@ import (
 )
 
 func (m *Model) renderAppShell(content string) string {
-	header := AppTitleStyle.Render("Insta Auto-Post")
-	
-	// Ensure content takes up available space minus header/footer
-	// We might need more sophisticated height calculation here later
-	
-	// For now, just join them
-	return lipgloss.JoinVertical(
-		lipgloss.Left,
-		header,
-		"\n",
-		lipgloss.NewStyle().Margin(1, 2).Render(content),
-	)
+	header := AppHeaderStyle.Render("📸 Instagram Auto-Post")
+
+	// Add breadcrumb if not on main menu
+	var breadcrumb string
+	if m.currentView != MenuView {
+		breadcrumb = m.renderBreadcrumb()
+	}
+
+	parts := []string{header}
+	if breadcrumb != "" {
+		parts = append(parts, breadcrumb)
+	}
+	parts = append(parts, AppContainerStyle.Render(content))
+
+	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+}
+
+func (m *Model) renderBreadcrumb() string {
+	var parts []string
+	parts = append(parts, BreadcrumbStyle.Render("Home"))
+
+	switch m.currentView {
+	case DashboardView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Dashboard"))
+	case BrowserView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Media Browser"))
+	case ComposerView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbStyle.Render("Media Browser"))
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Compose"))
+	case SchedulerView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Scheduled Posts"))
+	case SettingsView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Settings"))
+	case SettingsDirView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbStyle.Render("Settings"))
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Photos Directory"))
+	case SettingsAuthView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbStyle.Render("Settings"))
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Environment"))
+	case SettingsNgrokView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbStyle.Render("Settings"))
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Ngrok"))
+	case SetupView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("Setup"))
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
 }
 
 func (m *Model) renderProcessingView() string {
@@ -29,7 +77,7 @@ func (m *Model) renderProcessingView() string {
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(spinner+"  "+m.currentStatus),
 			"\n",
-			lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Hold tight, we're uploading to Instagram"),
+			BodySecondaryStyle.Render("Hold tight, we're uploading to Instagram"),
 		),
 	)
 
@@ -45,7 +93,7 @@ func (m *Model) renderProcessingView() string {
 
 	logMonitor := LogBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Foreground(Theme.Primary).Render("Activity Log"),
+			LogHeaderStyle.Render("Activity Log"),
 			"\n",
 			strings.Join(logLines, "\n"),
 		),
@@ -71,7 +119,7 @@ func (m *Model) renderSuccessView() string {
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(icon+"  "+m.lastResult),
 			"\n",
-			lipgloss.NewStyle().Foreground(Theme.Subtle).Render("Press any key to continue"),
+			BodySecondaryStyle.Render("Press any key to continue"),
 		),
 	)
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, successCard)
@@ -88,7 +136,9 @@ func (m *Model) renderCurrentView() string {
 	case MenuView:
 		return m.list.View()
 	case SchedulerView:
-		return "Scheduled Posts & History (q: back)\n\n" + m.table.View()
+		header := H2Style.Render("📅 Scheduled Posts & History")
+		helpText := BodyTertiaryStyle.Render("q: back")
+		return lipgloss.JoinVertical(lipgloss.Left, header, "", m.table.View(), "", helpText)
 	case SettingsAuthView:
 		return m.viewSettingsAuth()
 	case SettingsNgrokView:

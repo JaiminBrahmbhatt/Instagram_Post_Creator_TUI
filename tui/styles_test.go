@@ -16,15 +16,15 @@ func TestThemePalette(t *testing.T) {
 	if string(Theme.Surface) == "" {
 		t.Error("Theme.Surface is empty")
 	}
-	if string(Theme.Text) == "" {
-		t.Error("Theme.Text is empty")
+	if string(Theme.TextPrimary) == "" {
+		t.Error("Theme.TextPrimary is empty")
 	}
 }
 
 func TestNewStyles(t *testing.T) {
 	// Red phase: specific modern styles we want to implement
-	if AppTitleStyle.GetForeground() == lipgloss.Color("") {
-		t.Error("AppTitleStyle should have a foreground color")
+	if AppHeaderStyle.GetForeground() == lipgloss.Color("") {
+		t.Error("AppHeaderStyle should have a foreground color")
 	}
 
 	if CardStyle.GetBorderStyle().Top == "" {

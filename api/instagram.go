@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 )
 
@@ -43,15 +42,23 @@ func (c *Client) CreateCarouselContainer(caption string, children []string) (str
 
 func (c *Client) CreateMediaContainer(mediaURL, caption string, mediaType MediaType, isCarouselItem bool) (string, error) {
 	params := map[string]string{
-		"caption":          caption,
-		"media_type":       string(mediaType),
-		"is_carousel_item": strconv.FormatBool(isCarouselItem),
+		"caption": caption,
 	}
 
+	// Only include media_type for videos (VIDEO, REELS, STORIES)
+	// For images, media_type should NOT be sent
 	if mediaType == MediaTypeVideo {
+		params["media_type"] = string(mediaType)
 		params["video_url"] = mediaURL
 	} else {
+		// For images, just send image_url without media_type
 		params["image_url"] = mediaURL
+	}
+
+	// Only include is_carousel_item if it's true
+	// Instagram API rejects the request if is_carousel_item=false is sent
+	if isCarouselItem {
+		params["is_carousel_item"] = "true"
 	}
 
 	return c.makePostRequest("media", params)
@@ -149,7 +156,7 @@ func (c *Client) WaitForContainer(containerID string) error {
 // makePostRequest handles the common logic for Instagram Graph API POST requests using query parameters
 func (c *Client) makePostRequest(endpoint string, params map[string]string) (string, error) {
 	baseURL := fmt.Sprintf("https://graph.instagram.com/%s/%s/%s", APIVersion, c.IGID, endpoint)
-	
+
 	values := url.Values{}
 	for k, v := range params {
 		if v != "" {
@@ -162,7 +169,9 @@ func (c *Client) makePostRequest(endpoint string, params map[string]string) (str
 	}
 
 	fullURL := baseURL + "?" + values.Encode()
-	log.Printf("API Request: POST %s (params hidden)", baseURL)
+	log.Printf("API Request: POST %s", baseURL)
+	log.Printf("DEBUG - Parameters map: %+v", params)
+	log.Printf("DEBUG - URL values: %s", values.Encode())
 
 	req, err := http.NewRequest("POST", fullURL, nil)
 	if err != nil {

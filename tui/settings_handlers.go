@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 )
 
 func (m *Model) updateSettingsDirView(msg tea.Msg) tea.Cmd {
@@ -153,14 +153,14 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 					// Keychain
 					api.SetCredential("INSTA_ACCESS_TOKEN", token)
 					api.SetCredential("INSTA_IG_ID", igID)
-					
+
 					// DB
 					m.db.SetSetting("dry_run", dryRunStr)
 
 					// Update client
 					m.client.AccessToken = token
 					m.client.IGID = igID
-					
+
 					m.statusMsg = "Configuration saved!"
 					m.currentView = SettingsView
 					m.authEditing = false
@@ -193,19 +193,19 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 		case key.Matches(keyMsg, Keys.Tab):
 			m.ngrokFocusIndex = (m.ngrokFocusIndex + 1) % 2
 			if m.ngrokFocusIndex == 0 {
-				m.ngrokInput.Focus()
+				cmds = append(cmds, m.ngrokInput.Focus())
 				m.domainInput.Blur()
 			} else {
 				m.ngrokInput.Blur()
-				m.domainInput.Focus()
+				cmds = append(cmds, m.domainInput.Focus())
 			}
-			return nil
+			return tea.Batch(cmds...)
 		case key.Matches(keyMsg, Keys.Enter):
 			if m.ngrokFocusIndex == 0 {
 				m.ngrokFocusIndex = 1
 				m.ngrokInput.Blur()
-				m.domainInput.Focus()
-				return nil
+				cmds = append(cmds, m.domainInput.Focus())
+				return tea.Batch(cmds...)
 			}
 			// Save both
 			token := m.ngrokInput.Value()
@@ -224,6 +224,7 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 			m.currentView = SettingsView
 			return nil
 		case keyMsg.String() == "v":
+			// Toggle visibility for focused input
 			if m.ngrokFocusIndex == 0 {
 				if m.ngrokInput.EchoMode == textinput.EchoPassword {
 					m.ngrokInput.EchoMode = textinput.EchoNormal
@@ -231,9 +232,12 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 					m.ngrokInput.EchoMode = textinput.EchoPassword
 				}
 			}
+			// Return early to prevent 'v' from being typed into the input
+			return nil
 		}
 	}
 
+	// Only update inputs if we didn't handle a special key
 	var cmd tea.Cmd
 	m.ngrokInput, cmd = m.ngrokInput.Update(msg)
 	cmds = append(cmds, cmd)
