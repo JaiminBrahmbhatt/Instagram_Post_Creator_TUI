@@ -1,16 +1,16 @@
 package tui
 
 import (
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 func (m *Model) handleBackKey() (tea.Model, tea.Cmd) {
 	if m.currentView == MenuView && m.list.FilterState() == list.Filtering {
-		return m, nil // Let list handle filtering escape
+		return m, nil
 	}
 	if m.currentView == MenuView || m.currentView == SetupView {
 		m.quitting = true
@@ -44,7 +44,7 @@ func (m *Model) updateBrowserView(msg tea.Msg) tea.Cmd {
 
 func (m *Model) updateComposerView(msg tea.Msg) tea.Cmd {
 	if m.isProcessing {
-		return nil // Block input while processing
+		return nil
 	}
 
 	var cmd tea.Cmd
@@ -55,7 +55,7 @@ func (m *Model) updateComposerView(msg tea.Msg) tea.Cmd {
 		case key.Matches(keyMsg, Keys.Back):
 			m.currentView = MenuView
 			return nil
-		case key.Matches(keyMsg, Keys.Enter): // Schedule
+		case key.Matches(keyMsg, Keys.Enter):
 			m.savePost(db.StatusScheduled, "+0 minutes", "Post scheduled for now!")
 		case key.Matches(keyMsg, Keys.Draft):
 			m.savePost(db.StatusDraft, "", "Post saved as draft!")

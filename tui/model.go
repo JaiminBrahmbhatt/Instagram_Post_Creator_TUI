@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
@@ -12,8 +14,6 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 type Model struct {
@@ -59,7 +59,6 @@ type Model struct {
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// Global Key Handling
 	if msg, ok := msg.(tea.KeyMsg); ok {
 		if m.showSuccess {
 			m.showSuccess = false
@@ -77,7 +76,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
-	// Handle specific messages
 	switch msg := msg.(type) {
 	case logMsg:
 		m.handleLogMsg(msg)
@@ -94,7 +92,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	}
 
-	// View-specific Update Logic
 	cmd := m.updateViewLogic(msg)
 	return m, cmd
 }
@@ -113,8 +110,6 @@ func (m *Model) View() string {
 
 	var content string
 	if m.isProcessing {
-		// Processing view handles its own layout for now (centered)
-		// We might want to wrap it in shell later, but for now keep as is or wrap it
 		content = m.renderProcessingView()
 		return DocStyle.Render(content)
 	} else if m.showSuccess {
@@ -126,8 +121,7 @@ func (m *Model) View() string {
 
 	footer := m.viewFooter()
 	fullView := content + "\n\n" + footer
-	
-	// Wrap in App Shell
+
 	return m.renderAppShell(fullView)
 }
 

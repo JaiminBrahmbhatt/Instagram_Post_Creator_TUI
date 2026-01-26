@@ -16,9 +16,7 @@ var (
 	listener  ngrok.EndpointListener
 )
 
-// StartTunnel starts an ngrok tunnel using the v2 API and serves the provided handler.
 func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (string, error) {
-	// Fast check with read lock
 	tunnelMu.RLock()
 	if tunnelURL != "" {
 		url := tunnelURL
@@ -33,26 +31,18 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 
 	log.Println("[Ngrok] Setting up tunnel...")
 
-	log.Println("[Ngrok] Creating ngrok agent with authtoken...")
-
-	// Create an agent with the authtoken
 	agent, err := ngrok.NewAgent(ngrok.WithAuthtoken(authToken))
 	if err != nil {
 		log.Printf("[Ngrok] Failed to create agent: %v", err)
 		return "", fmt.Errorf("failed to create ngrok agent: %w", err)
 	}
 
-	log.Println("[Ngrok] Calling agent.Listen...")
-
-	// Build endpoint options
 	opts := []ngrok.EndpointOption{}
 	if domain := GetNgrokDomain(); domain != "" {
 		log.Printf("[Ngrok] Using static domain: %s", domain)
 		opts = append(opts, ngrok.WithURL(domain))
 	}
 
-	// Use the parent context, not a timeout context
-	// The listener must stay alive after this function returns
 	l, err := agent.Listen(ctx, opts...)
 	if err != nil {
 		log.Printf("[Ngrok] Listen failed: %v", err)
@@ -60,7 +50,6 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	}
 	log.Printf("[Ngrok] Tunnel established at %s", l.URL())
 
-	// Update state
 	tunnelMu.Lock()
 	listener = l
 	tunnelURL = l.URL().String()
@@ -76,7 +65,6 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	return tunnelURL, nil
 }
 
-// StopTunnel closes the active ngrok tunnel.
 func StopTunnel() error {
 	tunnelMu.Lock()
 	defer tunnelMu.Unlock()
@@ -91,7 +79,6 @@ func StopTunnel() error {
 	return nil
 }
 
-// GetTunnelURL returns the current tunnel URL.
 func GetTunnelURL() string {
 	tunnelMu.RLock()
 	defer tunnelMu.RUnlock()

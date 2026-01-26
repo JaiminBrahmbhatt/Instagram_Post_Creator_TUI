@@ -12,10 +12,8 @@ import (
 )
 
 func (m *Model) viewBrowser() string {
-	// Header
 	header := H2Style.Render("📁 Media Browser")
 
-	// Selection info
 	var selectionInfo string
 	if len(m.selectedMedia) > 0 {
 		selectionBadge := BadgeSuccessStyle.Render(fmt.Sprintf("%d selected", len(m.selectedMedia)))
@@ -31,7 +29,6 @@ func (m *Model) viewBrowser() string {
 		)
 	}
 
-	// Help text
 	helpText := BodyTertiaryStyle.Render("Enter: toggle • c: continue • q: back")
 
 	parts := []string{header}
@@ -45,10 +42,9 @@ func (m *Model) viewBrowser() string {
 
 func (m *Model) viewComposer() string {
 	if m.isProcessing {
-		return "" // Content is handled by the global isProcessing overlay in View()
+		return ""
 	}
 
-	// Check if we just finished
 	if !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
 		return SuccessStyle.Render("✅ Done! Your post is live.") + "\n\n" +
 			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
@@ -58,7 +54,6 @@ func (m *Model) viewComposer() string {
 
 	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
 
-	// Input card
 	inputLabel := InputLabelStyle.Render("Caption")
 	inputBox := m.input.View()
 	inputCard := CardStyle.Render(
@@ -89,7 +84,6 @@ func (m *Model) viewComposer() string {
 func (m *Model) viewDashboard() string {
 	header := H2Style.Render("📊 Dashboard")
 
-	// API Limits Card
 	quotaText := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 	if m.quotaTotal == 0 {
 		quotaText = "Loading or unavailable..."
@@ -103,7 +97,6 @@ func (m *Model) viewDashboard() string {
 		),
 	)
 
-	// Tunnel Status Card
 	tunnelURL := api.GetTunnelURL()
 	status := "Inactive"
 	statusStyle := BodySecondaryStyle
@@ -133,7 +126,6 @@ func (m *Model) viewDashboard() string {
 func (m *Model) viewFooter() string {
 	var elements []string
 
-	// Path
 	currentPath := m.browserDir
 	if m.currentView == SetupView && m.setupStep == 0 {
 		currentPath = m.fp.CurrentDirectory
@@ -142,12 +134,10 @@ func (m *Model) viewFooter() string {
 		elements = append(elements, PathStyle.Render("📍 "+currentPath))
 	}
 
-	// Status Message
 	if m.statusMsg != "" {
 		elements = append(elements, StatusMsgStyle.Render(m.statusMsg))
 	}
 
-	// Help
 	if m.currentView != MenuView && m.currentView != SettingsView {
 		var km help.KeyMap
 		switch m.currentView {
@@ -162,7 +152,7 @@ func (m *Model) viewFooter() string {
 		case SettingsDirView:
 			km = SettingsDirKeyMap{KeyMap: Keys}
 		case DashboardView:
-			km = SettingsDirKeyMap{KeyMap: Keys} // Basic help
+			km = SettingsDirKeyMap{KeyMap: Keys}
 		}
 
 		if km != nil {
@@ -175,7 +165,6 @@ func (m *Model) viewFooter() string {
 }
 
 func (m *Model) cleanLogLine(line string) string {
-	// standard Go log format: 2026/01/19 12:28:57 Message (20 chars + space)
 	if len(line) > 20 && strings.Contains(line[:20], "/") && strings.Contains(line[:20], ":") {
 		return strings.TrimSpace(line[20:])
 	}
@@ -222,16 +211,13 @@ func (m *Model) viewSettingsAuth() string {
 		"Dry Run Mode",
 	}
 
-	// Create table-like layout
 	var rows []string
 	for i := range m.authInputs {
-		// Indicator
 		indicator := "  "
 		if i == m.authFocusIndex {
 			indicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
 		}
 
-		// Label
 		var labelStyle lipgloss.Style
 		if i == m.authFocusIndex {
 			labelStyle = InputLabelFocusedStyle
@@ -240,10 +226,8 @@ func (m *Model) viewSettingsAuth() string {
 		}
 		labelText := lipgloss.NewStyle().Width(25).Render(labels[i])
 
-		// Input
 		inputView := m.authInputs[i].View()
 
-		// Combine into row
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),
@@ -317,16 +301,13 @@ func (m *Model) viewSettingsNgrok() string {
 
 	inputs := []textinput.Model{m.ngrokInput, m.domainInput}
 
-	// Create table-like layout
 	var rows []string
 	for i := 0; i < 2; i++ {
-		// Indicator
 		indicator := "  "
 		if i == m.ngrokFocusIndex {
 			indicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
 		}
 
-		// Label
 		var labelStyle lipgloss.Style
 		if i == m.ngrokFocusIndex {
 			labelStyle = InputLabelFocusedStyle
@@ -335,10 +316,8 @@ func (m *Model) viewSettingsNgrok() string {
 		}
 		labelText := lipgloss.NewStyle().Width(25).Render(labels[i])
 
-		// Input
 		inputView := inputs[i].View()
 
-		// Combine into row
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),

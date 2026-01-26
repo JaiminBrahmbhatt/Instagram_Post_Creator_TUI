@@ -38,7 +38,6 @@ func InitDB(path string) (*Database, error) {
 }
 
 func (db *Database) executeSchema() error {
-	// Try multiple paths for schema.sql
 	paths := []string{
 		"db/schema.sql",
 		"schema.sql",
@@ -55,7 +54,6 @@ func (db *Database) executeSchema() error {
 		}
 	}
 
-	// If schema file not found, use embedded schema
 	if err != nil {
 		schema = []byte(`
 CREATE TABLE IF NOT EXISTS media (

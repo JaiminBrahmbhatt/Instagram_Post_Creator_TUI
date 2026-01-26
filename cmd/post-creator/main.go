@@ -18,12 +18,10 @@ import (
 )
 
 func main() {
-	// Load .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, relying on environment variables")
 	}
 
-	// Redirect logs to a file to avoid messing up the TUI
 	f, err := os.OpenFile("debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Printf("error opening file: %v", err)
@@ -32,28 +30,23 @@ func main() {
 	defer f.Close()
 	log.SetOutput(f)
 
-	// Initialize DB
 	database, err := db.InitDB("post_creator.db")
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
-	// Initialize API Client
 	client := api.NewClient(
 		api.GetCredential("INSTA_ACCESS_TOKEN"),
 		api.GetCredential("INSTA_IG_ID"),
 	)
 
-	// Start Scheduler
 	scheduler := api.NewScheduler(database, client)
 	scheduler.Start()
 
-	// Start File Server to expose photos to Instagram
-	// Get photos directory from DB
 	var photosDir string
 	err = database.Conn.QueryRow("SELECT value FROM settings WHERE key = 'photos_dir'").Scan(&photosDir)
 	if err != nil || photosDir == "" {
-		photosDir = "photos" // Fallback
+		photosDir = "photos"
 	}
 
 	absPath, _ := filepath.Abs(photosDir)
@@ -74,11 +67,9 @@ func main() {
 		}
 	}()
 
-	// Automatic Ngrok Tunnel
 	if os.Getenv("SKIP_TUNNEL") != "true" {
 		token := api.GetNgrokToken()
 		if token != "" {
-			// Start in background to not block TUI
 			go func() {
 				log.Println("Attempting to start native Ngrok tunnel...")
 				url, err := api.StartTunnel(context.Background(), token, mux)
@@ -98,7 +89,6 @@ func main() {
 		}
 	}
 
-	// Start TUI
 	p := tea.NewProgram(tui.InitialModel(database, client, scheduler.ReportChan, scheduler.TriggerChan), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)

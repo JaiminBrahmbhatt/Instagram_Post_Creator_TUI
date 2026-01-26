@@ -51,7 +51,6 @@ func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
 func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) {
 	m.caption = m.input.Value()
 
-	// Validation
 	if len(m.caption) > 2200 {
 		m.statusMsg = "Error: Caption exceeds 2200 character limit"
 		return
@@ -74,7 +73,7 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 			case m.schedulerTrigger <- struct{}{}:
 			default:
 			}
-			return // Stay on ComposerView to watch logs
+			return
 		}
 	}
 	m.currentView = MenuView

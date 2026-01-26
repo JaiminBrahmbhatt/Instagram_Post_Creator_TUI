@@ -9,7 +9,6 @@ import (
 func (m *Model) renderAppShell(content string) string {
 	header := AppHeaderStyle.Render("📸 Instagram Auto-Post")
 
-	// Add breadcrumb if not on main menu
 	var breadcrumb string
 	if m.currentView != MenuView {
 		breadcrumb = m.renderBreadcrumb()
@@ -72,7 +71,6 @@ func (m *Model) renderBreadcrumb() string {
 func (m *Model) renderProcessingView() string {
 	spinner := m.spinner.View()
 
-	// Post Status Card
 	statusCard := LoadingBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(spinner+"  "+m.currentStatus),
@@ -81,12 +79,10 @@ func (m *Model) renderProcessingView() string {
 		),
 	)
 
-	// Logs monitor
 	var logLines []string
 	for _, l := range m.lastLogs {
 		logLines = append(logLines, LogEntryStyle.Render(l))
 	}
-	// Ensure it fills the height or at least looks consistent
 	for len(logLines) < 8 {
 		logLines = append(logLines, "")
 	}
@@ -99,7 +95,6 @@ func (m *Model) renderProcessingView() string {
 		),
 	)
 
-	// Layout the whole thing
 	mainDisplay := lipgloss.JoinVertical(lipgloss.Center,
 		statusCard,
 		"\n",

@@ -20,7 +20,6 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		s.report("Publishing post %d: %s", postID, caption)
 	}
 
-	// 1. Get media for post
 	mediaPaths, err := s.DB.GetPostMedia(postID)
 	if err != nil {
 		s.report("❌ Publish error (post %d): %v", postID, err)
@@ -48,7 +47,6 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		var igPostID string
 
 		if len(mediaPaths) == 1 {
-			// Single Post
 			path := mediaPaths[0]
 			publicURL, mType, err := s.prepareMedia(path)
 			if err != nil {
@@ -70,7 +68,6 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 			s.report("Creating and publishing single post...")
 			igPostID, err = s.Client.SDK.PublishSinglePost(ctx, post)
 		} else {
-			// Carousel Post
 			s.report("Preparing %d items for carousel...", len(mediaPaths))
 			var items []instagram.Post
 			for _, path := range mediaPaths {
@@ -107,7 +104,6 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		s.report("✅ Successfully published! Instagram ID: %s", igPostID)
 	}
 
-	// 5. Update status
 	if !dryRun {
 		s.DB.MarkPostPublished(postID)
 	}
@@ -119,18 +115,15 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	}
 }
 
-// prepareMedia calculates the public URL and detects media type for a file
 func (s *Scheduler) prepareMedia(path string) (string, MediaType, error) {
 	urlPrefix := getPublicURLPrefix()
 
-	// Detect media type
 	ext := strings.ToLower(filepath.Ext(path))
 	mType := MediaTypeImage
 	if ext == ".mp4" || ext == ".mov" {
 		mType = MediaTypeVideo
 	}
 
-	// Get photos directory to calculate relative paths
 	photosDir, err := s.DB.GetSetting("photos_dir")
 	if err != nil || photosDir == "" {
 		photosDir = "photos"
@@ -146,7 +139,7 @@ func (s *Scheduler) prepareMedia(path string) (string, MediaType, error) {
 	}
 	relPath, err := filepath.Rel(absPhotosDir, absPath)
 	if err != nil {
-		relPath = filepath.Base(path) // Fallback
+		relPath = filepath.Base(path)
 	}
 
 	publicURL := urlPrefix + relPath

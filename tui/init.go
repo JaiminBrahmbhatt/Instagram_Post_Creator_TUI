@@ -3,11 +3,11 @@ package tui
 import (
 	"path/filepath"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 )
 
 func InitialModel(database *db.Database, client *api.Client, reportChan chan string, triggerChan chan struct{}) *Model {
@@ -35,17 +35,15 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		currentView: MenuView,
 	}
 
-	// Check for first-time setup
 	dir, _ := database.GetSetting("photos_dir")
 	if dir == "" {
 		m.currentView = SetupView
 		m.setupStep = 0
 		m.fp.DirAllowed = true
-		m.fp.FileAllowed = false // Only show directories
+		m.fp.FileAllowed = false
 		m.fp.ShowPermissions = false
 		m.fp.AllowedTypes = nil
 	} else {
-		// Ensure absolute path
 		absDir, err := filepath.Abs(dir)
 		if err != nil {
 			absDir = dir

@@ -37,7 +37,6 @@ func (c *Client) GetPublishingLimit() (*PublishingLimit, error) {
 		return nil, err
 	}
 
-	// Using a simple client for this single request
 	httpClient := &http.Client{Timeout: 30 * time.Second}
 	resp, err := httpClient.Do(req)
 	if err != nil {

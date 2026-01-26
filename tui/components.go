@@ -43,7 +43,6 @@ func NewFilePicker() filepicker.Model {
 	fp.CurrentDirectory, _ = os.Getwd()
 	fp.SetHeight(20)
 
-	// Apply Theme
 	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	fp.Styles.Selected = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
 	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Info)
@@ -63,7 +62,7 @@ func NewMenu() list.Model {
 	}
 
 	l := list.New(items, NewCustomDelegate(), 0, 0)
-	l.Title = "" // Handled by App Shell
+	l.Title = ""
 	l.SetShowStatusBar(false)
 	l.Styles.Title = TitleStyle
 	l.Styles.PaginationStyle = PaginationStyle
@@ -131,7 +130,6 @@ func getTableStyles() table.Styles {
 func NewEnvInputs() []textinput.Model {
 	inputs := make([]textinput.Model, 3)
 
-	// Access Token
 	inputs[0] = textinput.New()
 	inputs[0].Placeholder = "Instagram Access Token"
 	inputs[0].EchoMode = textinput.EchoPassword
@@ -139,7 +137,6 @@ func NewEnvInputs() []textinput.Model {
 	inputs[0].CharLimit = 512
 	inputs[0].Width = 50
 
-	// IG ID
 	inputs[1] = textinput.New()
 	inputs[1].Placeholder = "Instagram IG ID"
 	inputs[1].EchoMode = textinput.EchoPassword
@@ -147,7 +144,6 @@ func NewEnvInputs() []textinput.Model {
 	inputs[1].CharLimit = 64
 	inputs[1].Width = 30
 
-	// Dry Run
 	inputs[2] = textinput.New()
 	inputs[2].Placeholder = "Dry Run (true/false)"
 	inputs[2].CharLimit = 5
