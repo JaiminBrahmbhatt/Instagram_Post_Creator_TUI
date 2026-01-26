@@ -55,8 +55,11 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 			m.currentView = SetupView
 		case SettingsTitleNgrok:
 			m.currentView = SettingsNgrokView
+			m.ngrokFocusIndex = 0
 			m.ngrokInput.SetValue(api.GetNgrokToken())
+			m.domainInput.SetValue(api.GetNgrokDomain())
 			m.ngrokInput.Focus()
+			m.domainInput.Blur()
 		case SettingsTitleEnv:
 			m.currentView = SettingsAuthView
 			m.authFocusIndex = 0
@@ -178,30 +181,64 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 }
 
 func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
-	m.ngrokInput, cmd = m.ngrokInput.Update(msg)
+	var cmds []tea.Cmd
 
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
 		switch {
-		case key.Matches(keyMsg, Keys.Enter):
-			token := m.ngrokInput.Value()
-			if err := api.SaveNgrokToken(token); err != nil {
-				m.statusMsg = "Error saving Ngrok token: " + err.Error()
-			} else {
-				m.statusMsg = "Token saved! Restart to activate tunnel."
-			}
-			m.ngrokInput.Blur()
-			m.currentView = SettingsView
-		case keyMsg.String() == "v":
-			if m.ngrokInput.EchoMode == textinput.EchoPassword {
-				m.ngrokInput.EchoMode = textinput.EchoNormal
-			} else {
-				m.ngrokInput.EchoMode = textinput.EchoPassword
-			}
 		case key.Matches(keyMsg, Keys.Back):
 			m.ngrokInput.Blur()
+			m.domainInput.Blur()
 			m.currentView = SettingsView
+			return nil
+		case key.Matches(keyMsg, Keys.Tab):
+			m.ngrokFocusIndex = (m.ngrokFocusIndex + 1) % 2
+			if m.ngrokFocusIndex == 0 {
+				m.ngrokInput.Focus()
+				m.domainInput.Blur()
+			} else {
+				m.ngrokInput.Blur()
+				m.domainInput.Focus()
+			}
+			return nil
+		case key.Matches(keyMsg, Keys.Enter):
+			if m.ngrokFocusIndex == 0 {
+				m.ngrokFocusIndex = 1
+				m.ngrokInput.Blur()
+				m.domainInput.Focus()
+				return nil
+			}
+			// Save both
+			token := m.ngrokInput.Value()
+			domain := m.domainInput.Value()
+
+			err1 := api.SaveNgrokToken(token)
+			err2 := api.SaveNgrokDomain(domain)
+
+			if err1 != nil || err2 != nil {
+				m.statusMsg = fmt.Sprintf("Error saving: %v %v", err1, err2)
+			} else {
+				m.statusMsg = "Settings saved! Restart to activate changes."
+			}
+			m.ngrokInput.Blur()
+			m.domainInput.Blur()
+			m.currentView = SettingsView
+			return nil
+		case keyMsg.String() == "v":
+			if m.ngrokFocusIndex == 0 {
+				if m.ngrokInput.EchoMode == textinput.EchoPassword {
+					m.ngrokInput.EchoMode = textinput.EchoNormal
+				} else {
+					m.ngrokInput.EchoMode = textinput.EchoPassword
+				}
+			}
 		}
 	}
-	return cmd
+
+	var cmd tea.Cmd
+	m.ngrokInput, cmd = m.ngrokInput.Update(msg)
+	cmds = append(cmds, cmd)
+	m.domainInput, cmd = m.domainInput.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return tea.Batch(cmds...)
 }

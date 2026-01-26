@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	serviceName   = "instagram-post-creator"
-	ngrokTokenKey = "ngrok_auth_token"
+	serviceName    = "instagram-post-creator"
+	ngrokTokenKey  = "ngrok_auth_token"
+	ngrokDomainKey = "ngrok_domain"
 )
 
 // GetCredential retrieves a credential from the system keyring first,
@@ -42,6 +43,16 @@ func GetNgrokToken() string {
 // SaveNgrokToken saves the Ngrok auth token to the keyring.
 func SaveNgrokToken(token string) error {
 	return SetCredential(ngrokTokenKey, token)
+}
+
+// GetNgrokDomain retrieves the Ngrok static domain from the keyring.
+func GetNgrokDomain() string {
+	return GetCredential(ngrokDomainKey)
+}
+
+// SaveNgrokDomain saves the Ngrok static domain to the keyring.
+func SaveNgrokDomain(domain string) error {
+	return SetCredential(ngrokDomainKey, domain)
 }
 
 func syncToKeyring(key, value string) {

@@ -43,7 +43,14 @@ func StartTunnel(ctx context.Context, authToken string, handler http.Handler) (s
 	defer cancel()
 
 	log.Println("[Ngrok] Calling ngrok.Listen...")
-	l, err := ngrok.Listen(connectCtx)
+	
+	opts := []ngrok.EndpointOption{}
+	if domain := GetNgrokDomain(); domain != "" {
+		log.Printf("[Ngrok] Using static domain: %s", domain)
+		opts = append(opts, ngrok.WithURL(domain))
+	}
+
+	l, err := ngrok.Listen(connectCtx, opts...)
 	if err != nil {
 		log.Printf("[Ngrok] Listen failed: %v", err)
 		return "", fmt.Errorf("failed to start ngrok tunnel: %w", err)

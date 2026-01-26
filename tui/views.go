@@ -198,8 +198,28 @@ func (m *Model) viewSetup() string {
 func (m *Model) viewSettingsNgrok() string {
 	var b strings.Builder
 	b.WriteString(TitleStyle.Render("Ngrok Configuration") + "\n\n")
-	b.WriteString("Enter your Ngrok Authtoken below. This is required for creating a public tunnel to your local media files.\n\n")
-	b.WriteString("Token: " + m.ngrokInput.View() + "\n\n")
-	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(Enter: Save • v: Toggle Visibility • Back: Cancel)"))
+	b.WriteString("Configure your Ngrok Authtoken and optional Static Domain.\n\n")
+
+	// Token
+	tokenLabel := "Ngrok Authtoken"
+	if m.ngrokFocusIndex == 0 {
+		tokenLabel = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true).Render("> " + tokenLabel)
+	} else {
+		tokenLabel = "  " + tokenLabel
+	}
+	b.WriteString(tokenLabel + "\n")
+	b.WriteString("  " + m.ngrokInput.View() + "\n\n")
+
+	// Domain
+	domainLabel := "Static Domain (Optional)"
+	if m.ngrokFocusIndex == 1 {
+		domainLabel = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true).Render("> " + domainLabel)
+	} else {
+		domainLabel = "  " + domainLabel
+	}
+	b.WriteString(domainLabel + "\n")
+	b.WriteString("  " + m.domainInput.View() + "\n\n")
+
+	b.WriteString(lipgloss.NewStyle().Foreground(Theme.Subtle).Render("(Tab: switch • Enter: next/save • v: toggle visibility • Back: cancel)"))
 	return b.String()
 }

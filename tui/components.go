@@ -169,3 +169,15 @@ func NewNgrokInput() textinput.Model {
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
 	return ti
 }
+
+func NewDomainInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "e.g. your-domain.ngrok-free.app (Optional)"
+	ti.CharLimit = 128
+	ti.Width = 50
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.Secondary)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.Text)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.Subtle)
+	return ti
+}

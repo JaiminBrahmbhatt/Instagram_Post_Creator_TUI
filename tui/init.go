@@ -20,6 +20,7 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		help:             help.New(),
 		input:            NewCaptionInput(),
 		ngrokInput:       NewNgrokInput(),
+		domainInput:      NewDomainInput(),
 		list:             NewMenu(),
 		settingsList:     NewSettingsList(),
 		table:            NewPostsTable(),

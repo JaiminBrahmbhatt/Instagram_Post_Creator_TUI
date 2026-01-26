@@ -20,6 +20,7 @@ type Model struct {
 	authEditing      bool
 	authFocusIndex   int
 	authInputs       []textinput.Model
+	ngrokFocusIndex  int
 	browserDir       string
 	browserTable     table.Model
 	caption          string
@@ -30,6 +31,7 @@ type Model struct {
 	help             help.Model
 	input            textinput.Model
 	ngrokInput       textinput.Model
+	domainInput      textinput.Model
 	isProcessing     bool
 	lastLogs         []string
 	list             list.Model

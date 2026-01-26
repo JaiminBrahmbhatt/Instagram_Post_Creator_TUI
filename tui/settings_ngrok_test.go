@@ -15,7 +15,11 @@ func TestNgrokSettingsModel(t *testing.T) {
 	m.ngrokInput = textinput.New()
 	m.ngrokInput.SetValue("initial-token")
 
-	if m.ngrokInput.Value() != "initial-token" {
+	// This ensures domainInput is defined
+	m.domainInput = textinput.New()
+	m.domainInput.SetValue("test-domain")
+
+	if m.ngrokInput.Value() != "initial-token" || m.domainInput.Value() != "test-domain" {
 		t.Error("Input value mismatch")
 	}
 }
