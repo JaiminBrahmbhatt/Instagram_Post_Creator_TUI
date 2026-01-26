@@ -1,31 +1,36 @@
 package api
 
-const APIVersion = "v19.0"
+import (
+	instagram "github.com/JaiminBrahmbhatt/insta-go-sdk"
+)
 
-type MediaType string
+const APIVersion = "v24.0"
+
+type MediaType = instagram.MediaType
 
 const (
+	MediaTypeImage   = instagram.MediaTypeImage
+	MediaTypeReels   = instagram.MediaTypeReels
+	MediaTypeStories = instagram.MediaTypeStories
+	MediaTypeVideo   = instagram.MediaTypeVideo
+	// Keep Carousel for compatibility if needed elsewhere, though the SDK handles it differently
 	MediaTypeCarousel MediaType = "CAROUSEL"
-	MediaTypeImage    MediaType = "IMAGE"
-	MediaTypeReels    MediaType = "REELS"
-	MediaTypeStories  MediaType = "STORIES"
-	MediaTypeVideo    MediaType = "VIDEO"
+)
+
+type ContainerStatus = instagram.ContainerStatus
+
+const (
+	ContainerStatusExpired    = instagram.StatusExpired
+	ContainerStatusError      = instagram.StatusError
+	ContainerStatusFinished   = instagram.StatusFinished
+	ContainerStatusInProgress = instagram.StatusInProgress
+	ContainerStatusPublished  = instagram.StatusPublished
 )
 
 // SupportedExtensions defines the file extensions allowed for media upload.
 // This is the source of truth for the entire application.
 // Note: Keep extensions lowercase.
 var SupportedExtensions = []string{".jpg", ".jpeg", ".png", ".gif", ".mp4", ".mov"}
-
-type ContainerStatus string
-
-const (
-	ContainerStatusExpired    ContainerStatus = "EXPIRED"
-	ContainerStatusError      ContainerStatus = "ERROR"
-	ContainerStatusFinished   ContainerStatus = "FINISHED"
-	ContainerStatusInProgress ContainerStatus = "IN_PROGRESS"
-	ContainerStatusPublished  ContainerStatus = "PUBLISHED"
-)
 
 // Response Types
 

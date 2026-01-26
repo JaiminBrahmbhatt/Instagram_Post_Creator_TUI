@@ -1,12 +1,14 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
+	instagram "github.com/JaiminBrahmbhatt/insta-go-sdk"
 )
 
 func (s *Scheduler) PublishPost(postID int64, caption string) {
@@ -42,28 +44,67 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 		urlPrefix := getPublicURLPrefix()
 		s.report("[DRY RUN] Would upload %d files to %s", len(mediaPaths), urlPrefix)
 	} else {
-		carouselID, err := s.createContainers(mediaPaths, caption)
+		ctx := context.Background()
+		var igPostID string
+
+		if len(mediaPaths) == 1 {
+			// Single Post
+			path := mediaPaths[0]
+			publicURL, mType, err := s.prepareMedia(path)
+			if err != nil {
+				s.report("❌ Preparation failed: %v", err)
+				s.DB.MarkPostStatus(postID, db.StatusFailed)
+				return
+			}
+
+			post := instagram.Post{
+				Caption: caption,
+				Type:    mType,
+			}
+			if mType == MediaTypeVideo {
+				post.VideoURL = publicURL
+			} else {
+				post.ImageURL = publicURL
+			}
+
+			s.report("Creating and publishing single post...")
+			igPostID, err = s.Client.SDK.PublishSinglePost(ctx, post)
+		} else {
+			// Carousel Post
+			s.report("Preparing %d items for carousel...", len(mediaPaths))
+			var items []instagram.Post
+			for _, path := range mediaPaths {
+				publicURL, mType, err := s.prepareMedia(path)
+				if err != nil {
+					s.report("❌ Preparation failed for %s: %v", path, err)
+					s.DB.MarkPostStatus(postID, db.StatusFailed)
+					return
+				}
+
+				item := instagram.Post{
+					Type: mType,
+				}
+				if mType == MediaTypeVideo {
+					item.VideoURL = publicURL
+				} else {
+					item.ImageURL = publicURL
+				}
+				items = append(items, item)
+			}
+
+			s.report("Creating and publishing carousel container...")
+			igPostID, err = s.Client.SDK.PublishCarousel(ctx, instagram.CarouselPost{
+				Items:   items,
+				Caption: caption,
+			})
+		}
+
 		if err != nil {
-			s.report("❌ Failed to create containers: %v", err)
+			s.report("❌ API Error: %v", err)
 			s.DB.MarkPostStatus(postID, db.StatusFailed)
 			return
 		}
-
-		// 3. WAIT for processing before publishing
-		s.report("Waiting for Instagram processing...")
-		if err := s.Client.WaitForContainer(carouselID); err != nil {
-			s.report("❌ Processing failed: %v", err)
-			s.DB.MarkPostStatus(postID, db.StatusFailed)
-			return
-		}
-
-		// 4. Publish
-		s.report("Publishing content...")
-		if _, err := s.Client.PublishContainer(carouselID); err != nil {
-			s.report("❌ Failed to publish: %v", err)
-			s.DB.MarkPostStatus(postID, db.StatusFailed)
-			return
-		}
+		s.report("✅ Successfully published! Instagram ID: %s", igPostID)
 	}
 
 	// 5. Update status
@@ -74,20 +115,19 @@ func (s *Scheduler) PublishPost(postID int64, caption string) {
 	if dryRun {
 		s.report("✅ [DRY RUN] Post %d complete", postID)
 	} else {
-		s.report("✅ Successfully published post %d!", postID)
+		s.report("✅ Successfully finished post %d callback!", postID)
 	}
 }
 
-func (s *Scheduler) createContainers(mediaPaths []string, caption string) (string, error) {
+// prepareMedia calculates the public URL and detects media type for a file
+func (s *Scheduler) prepareMedia(path string) (string, MediaType, error) {
 	urlPrefix := getPublicURLPrefix()
 
-	var itemIDs []string
-	isCarousel := len(mediaPaths) > 1
-
-	if isCarousel {
-		s.report("Creating Carousel Post with %d items...", len(mediaPaths))
-	} else {
-		s.report("Creating Single Post...")
+	// Detect media type
+	ext := strings.ToLower(filepath.Ext(path))
+	mType := MediaTypeImage
+	if ext == ".mp4" || ext == ".mov" {
+		mType = MediaTypeVideo
 	}
 
 	// Get photos directory to calculate relative paths
@@ -97,58 +137,20 @@ func (s *Scheduler) createContainers(mediaPaths []string, caption string) (strin
 	}
 	absPhotosDir, err := filepath.Abs(photosDir)
 	if err != nil {
-		return "", fmt.Errorf("failed to get absolute photos dir: %w", err)
+		return "", "", fmt.Errorf("failed to get absolute photos dir: %w", err)
 	}
 
-	for _, path := range mediaPaths {
-		absPath, err := filepath.Abs(path)
-		if err != nil {
-			return "", fmt.Errorf("failed to get absolute path for %s: %w", path, err)
-		}
-		relPath, err := filepath.Rel(absPhotosDir, absPath)
-		if err != nil {
-			relPath = filepath.Base(path) // Fallback
-		}
-
-		publicURL := urlPrefix + relPath
-
-		// Detect media type
-		ext := strings.ToLower(filepath.Ext(path))
-		mType := MediaTypeImage
-		if ext == ".mp4" || ext == ".mov" {
-			mType = MediaTypeVideo
-		}
-
-		s.report("  - Uploading %s (%s)", filepath.Base(path), mType)
-
-		// For single posts, pass the caption here.
-		// For carousel items, caption must be empty and isCarouselItem=true.
-		itemCaption := ""
-		if !isCarousel {
-			itemCaption = caption
-		}
-
-		id, err := s.Client.CreateMediaContainer(publicURL, itemCaption, mType, isCarousel)
-		if err != nil {
-			return "", err
-		}
-
-		// Wait for child container if it's part of a carousel
-		if isCarousel {
-			s.report("  - Waiting for %s to be ready...", filepath.Base(path))
-			if err := s.Client.WaitForContainer(id); err != nil {
-				return "", fmt.Errorf("child container failed: %w", err)
-			}
-		}
-
-		itemIDs = append(itemIDs, id)
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get absolute path for %s: %w", path, err)
+	}
+	relPath, err := filepath.Rel(absPhotosDir, absPath)
+	if err != nil {
+		relPath = filepath.Base(path) // Fallback
 	}
 
-	if isCarousel {
-		s.report("Creating carousel container...")
-		return s.Client.CreateCarouselContainer(caption, itemIDs)
-	}
-	return itemIDs[0], nil
+	publicURL := urlPrefix + relPath
+	return publicURL, mType, nil
 }
 
 func getPublicURLPrefix() string {
@@ -166,4 +168,3 @@ func getPublicURLPrefix() string {
 	}
 	return "https://example.com/"
 }
-

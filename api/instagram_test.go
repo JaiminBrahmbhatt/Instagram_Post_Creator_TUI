@@ -4,50 +4,24 @@ import (
 	"testing"
 )
 
-func TestCreateMediaContainer_SinglePost(t *testing.T) {
-	client := &Client{
-		AccessToken: "test_token",
-		IGID:        "test_ig_id",
+func TestNewClient(t *testing.T) {
+	accessToken := "test_token"
+	igID := "test_ig_id"
+	client := NewClient(accessToken, igID)
+
+	if client == nil {
+		t.Fatal("NewClient returned nil")
 	}
 
-	// Test that is_carousel_item is NOT included for single posts
-	// We can't easily test the actual HTTP request without mocking,
-	// but we can verify the logic by checking the params map construction
-
-	// This test verifies the fix: is_carousel_item should only be sent when true
-	mediaURL := "https://example.com/image.jpg"
-	caption := "Test caption"
-	mediaType := MediaTypeImage
-	isCarouselItem := false
-
-	// The function should not include is_carousel_item in params when false
-	// We'll need to refactor to make this testable, or test via integration
-
-	// For now, just verify the function signature is correct
-	_, err := client.CreateMediaContainer(mediaURL, caption, mediaType, isCarouselItem)
-
-	// We expect an error because we're not actually making a real API call
-	// but the function should at least compile and run
-	if err == nil {
-		t.Log("Function executed (expected to fail with network error)")
-	}
-}
-
-func TestCreateMediaContainer_CarouselItem(t *testing.T) {
-	client := &Client{
-		AccessToken: "test_token",
-		IGID:        "test_ig_id",
+	if client.AccessToken != accessToken {
+		t.Errorf("Expected access token %s, got %s", accessToken, client.AccessToken)
 	}
 
-	mediaURL := "https://example.com/image.jpg"
-	caption := ""
-	mediaType := MediaTypeImage
-	isCarouselItem := true
+	if client.IGID != igID {
+		t.Errorf("Expected IGID %s, got %s", igID, client.IGID)
+	}
 
-	// The function should include is_carousel_item=true in params
-	_, err := client.CreateMediaContainer(mediaURL, caption, mediaType, isCarouselItem)
-
-	if err == nil {
-		t.Log("Function executed (expected to fail with network error)")
+	if client.SDK == nil {
+		t.Error("SDK was not initialized")
 	}
 }
