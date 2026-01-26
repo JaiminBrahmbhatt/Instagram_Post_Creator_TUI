@@ -15,6 +15,7 @@
 ## API & Networking
 - **Instagram Graph API (v24.0+):** The official interface for content publishing and retrieving engagement metrics.
 - **Standard Library `net/http`:** For making robust, concurrent API requests.
+- **Ngrok-Go:** Native integration for creating secure tunnels to expose local media files to the internet without external binaries.
 
 ## Security & Configuration
 - **Go-keyring:** Cross-platform library used to securely store sensitive API credentials (Access Tokens, App Secrets) in the OS-level keychain.
