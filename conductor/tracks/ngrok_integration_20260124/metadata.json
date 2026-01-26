@@ -1,8 +1,0 @@
-{
-  "track_id": "ngrok_integration_20260124",
-  "type": "feature",
-  "status": "new",
-  "created_at": "2026-01-24T12:00:00Z",
-  "updated_at": "2026-01-24T12:00:00Z",
-  "description": "Replace external ngrok/cloudflared binaries with native ngrok-go integration."
-}
