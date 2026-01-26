@@ -9,8 +9,8 @@ import (
 
 const (
 	serviceName    = "instagram-post-creator"
-	ngrokTokenKey  = "ngrok_auth_token"
-	ngrokDomainKey = "ngrok_domain"
+	ngrokTokenKey  = "NGROK_AUTH_TOKEN"
+	ngrokDomainKey = "NGROK_DOMAIN"
 )
 
 // GetCredential retrieves a credential from the system keyring first,
