@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"os"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -33,8 +34,25 @@ func InitDB(path string) (*Database, error) {
 	if err := d.executeSchema(); err != nil {
 		return nil, err
 	}
+	if err := d.migratePostsTable(); err != nil {
+		return nil, err
+	}
 
 	return d, nil
+}
+
+// migratePostsTable adds new columns to posts for existing databases.
+func (db *Database) migratePostsTable() error {
+	for _, col := range []string{
+		"alt_text TEXT", "location_id TEXT", "user_tags TEXT", "share_to_feed INTEGER DEFAULT 0",
+		"cover_url TEXT", "thumb_offset INTEGER DEFAULT 0", "collaborators TEXT", "audio_name TEXT", "post_as_story INTEGER DEFAULT 0",
+	} {
+		_, err := db.Conn.Exec("ALTER TABLE posts ADD COLUMN " + col)
+		if err != nil && !strings.Contains(err.Error(), "duplicate column") {
+			return err
+		}
+	}
+	return nil
 }
 
 func (db *Database) executeSchema() error {
@@ -74,7 +92,16 @@ CREATE TABLE IF NOT EXISTS posts (
     status TEXT CHECK(status IN ('draft', 'scheduled', 'publishing', 'published', 'failed')) DEFAULT 'draft',
     engagement_likes INTEGER DEFAULT 0,
     engagement_comments INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    alt_text TEXT,
+    location_id TEXT,
+    user_tags TEXT,
+    share_to_feed INTEGER DEFAULT 0,
+    cover_url TEXT,
+    thumb_offset INTEGER DEFAULT 0,
+    collaborators TEXT,
+    audio_name TEXT,
+    post_as_story INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS post_media (

@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
+	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -30,7 +31,20 @@ type Model struct {
 	fp               filepicker.Model
 	help             help.Model
 	input            textinput.Model
-	ngrokInput       textinput.Model
+	altTextInput     textinput.Model
+	locationIDInput  textinput.Model
+	composerFocusIdx    int   // 0=caption..4=share, 5=cover, 6=thumb, 7=collab, 8=audio, 9=story, 10=custom (when Custom)
+	scheduleChoiceIdx   int   // index into ScheduleOptions (0=now, 1=1h, ... 6=Custom)
+	customScheduleInput textinput.Model
+	userTagsInput       textinput.Model
+	shareToFeedInput    textinput.Model
+	coverURLInput       textinput.Model
+	thumbOffsetInput    textinput.Model
+	collaboratorsInput  textinput.Model
+	audioNameInput      textinput.Model
+	postAsStoryInput    textinput.Model
+	composerViewport    viewport.Model
+	ngrokInput          textinput.Model
 	domainInput      textinput.Model
 	isProcessing     bool
 	lastLogs         []string

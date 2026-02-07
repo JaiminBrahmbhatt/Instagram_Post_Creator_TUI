@@ -18,7 +18,16 @@ CREATE TABLE IF NOT EXISTS posts (
     status TEXT CHECK(status IN ('draft', 'scheduled', 'publishing', 'published', 'failed')) DEFAULT 'draft',
     engagement_likes INTEGER DEFAULT 0,
     engagement_comments INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    alt_text TEXT,
+    location_id TEXT,
+    user_tags TEXT,
+    share_to_feed INTEGER DEFAULT 0,
+    cover_url TEXT,
+    thumb_offset INTEGER DEFAULT 0,
+    collaborators TEXT,
+    audio_name TEXT,
+    post_as_story INTEGER DEFAULT 0
 );
 
 -- Junction table for carousel items

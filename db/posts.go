@@ -1,6 +1,7 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
 )
 
@@ -115,18 +116,72 @@ func (db *Database) MarkPostPublished(postID int64) error {
 	return tx.Commit()
 }
 
-func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string, status PostStatus) (int64, error) {
+// PostOptions holds optional per-post fields (accessibility, location, user tags, reel options, story).
+type PostOptions struct {
+	AltText      string
+	LocationID   string
+	UserTags     []string // Instagram usernames to tag
+	ShareToFeed  bool     // for Reels: also show in main feed
+	CoverURL     string   // for Reels: custom cover image URL (JPEG, 8MB max)
+	ThumbOffset  int      // for Reels: thumbnail frame in ms (0 = not set)
+	Collaborators []string // for Reels: co-author usernames
+	AudioName    string   // for Reels: original audio attribution
+	PostAsStory  bool     // publish as Story (24h, single image or video)
+}
+
+func (db *Database) GetPostOptions(postID int64) (PostOptions, error) {
+	var o PostOptions
+	var userTagsRaw, collabRaw string
+	var shareToFeed, postAsStory int
+	err := db.Conn.QueryRow(
+		`SELECT COALESCE(alt_text,''), COALESCE(location_id,''), COALESCE(user_tags,'[]'), COALESCE(share_to_feed,0),
+		 COALESCE(cover_url,''), COALESCE(thumb_offset,0), COALESCE(collaborators,'[]'), COALESCE(audio_name,''), COALESCE(post_as_story,0) FROM posts WHERE id = ?`,
+		postID,
+	).Scan(&o.AltText, &o.LocationID, &userTagsRaw, &shareToFeed, &o.CoverURL, &o.ThumbOffset, &collabRaw, &o.AudioName, &postAsStory)
+	if err != nil {
+		return o, err
+	}
+	_ = json.Unmarshal([]byte(userTagsRaw), &o.UserTags)
+	_ = json.Unmarshal([]byte(collabRaw), &o.Collaborators)
+	o.ShareToFeed = shareToFeed == 1
+	o.PostAsStory = postAsStory == 1
+	return o, nil
+}
+
+func (db *Database) SavePost(caption string, mediaPaths []string, scheduledAt string, status PostStatus, options PostOptions) (int64, error) {
 	tx, err := db.Conn.Begin()
 	if err != nil {
 		return 0, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	if scheduledAt == "" {
-		scheduledAt = "NULL"
+	// scheduled_at: full datetime string (UTC) for scheduled posts, or nil for draft
+	var scheduledAtVal interface{}
+	if scheduledAt != "" {
+		scheduledAtVal = scheduledAt
 	}
 
-	res, err := tx.Exec("INSERT INTO posts (caption, scheduled_at, status) VALUES (?, datetime('now', ?), ?)", caption, scheduledAt, status)
+	userTagsJSON, _ := json.Marshal(options.UserTags)
+	if userTagsJSON == nil {
+		userTagsJSON = []byte("[]")
+	}
+	collabJSON, _ := json.Marshal(options.Collaborators)
+	if collabJSON == nil {
+		collabJSON = []byte("[]")
+	}
+	shareVal := 0
+	if options.ShareToFeed {
+		shareVal = 1
+	}
+	storyVal := 0
+	if options.PostAsStory {
+		storyVal = 1
+	}
+	res, err := tx.Exec(
+		`INSERT INTO posts (caption, scheduled_at, status, alt_text, location_id, user_tags, share_to_feed, cover_url, thumb_offset, collaborators, audio_name, post_as_story) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		caption, scheduledAtVal, status, options.AltText, options.LocationID, string(userTagsJSON), shareVal,
+		options.CoverURL, options.ThumbOffset, string(collabJSON), options.AudioName, storyVal,
+	)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert post: %w", err)
 	}

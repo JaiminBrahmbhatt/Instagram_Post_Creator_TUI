@@ -7,6 +7,7 @@ import (
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/spinner"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -19,7 +20,18 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		fp:               NewFilePicker(),
 		help:             help.New(),
 		input:            NewCaptionInput(),
-		ngrokInput:       NewNgrokInput(),
+		altTextInput:       NewAltTextInput(),
+		locationIDInput:    NewLocationIDInput(),
+		customScheduleInput: NewCustomScheduleInput(),
+		userTagsInput:       NewUserTagsInput(),
+		shareToFeedInput:    NewShareToFeedInput(),
+		coverURLInput:       NewCoverURLInput(),
+		thumbOffsetInput:    NewThumbOffsetInput(),
+		collaboratorsInput:  NewCollaboratorsInput(),
+		audioNameInput:      NewAudioNameInput(),
+		postAsStoryInput:    NewPostAsStoryInput(),
+		composerViewport:    viewport.New(80, 20),
+		ngrokInput:          NewNgrokInput(),
 		domainInput:      NewDomainInput(),
 		list:             NewMenu(),
 		settingsList:     NewSettingsList(),

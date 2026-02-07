@@ -99,12 +99,12 @@ func (k BrowserKeyMap) FullHelp() [][]key.Binding {
 type ComposerKeyMap struct{ KeyMap }
 
 func (k ComposerKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Enter, k.Draft, k.Back, k.Help}
+	return []key.Binding{k.Tab, k.Enter, k.Draft, k.Back, k.Help}
 }
 
 func (k ComposerKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Enter, k.Draft},
+		{k.Tab, k.Enter, k.Draft},
 		{k.Back, k.Help},
 	}
 }

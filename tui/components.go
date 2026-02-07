@@ -37,6 +37,106 @@ func NewCaptionInput() textinput.Model {
 	return ti
 }
 
+func NewAltTextInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Alt text for accessibility (optional)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewLocationIDInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Facebook Page location ID (optional)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewCustomScheduleInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "e.g. 2026-02-10 14:30 or tomorrow 9am"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewUserTagsInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Comma-separated usernames, e.g. user1, user2"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewShareToFeedInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "y or n (for single video/reel: also show in feed)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewCoverURLInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Reel cover image URL (optional, JPEG 8MB max)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewThumbOffsetInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Thumbnail offset in ms (e.g. 3500 for 3.5s, 0 = not set)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewCollaboratorsInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Reel collaborators (comma-separated usernames)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewAudioNameInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "Original audio name for Reels (optional)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func NewPostAsStoryInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "y or n (post as Story, 24h expiry, single image/video)"
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
 func NewFilePicker() filepicker.Model {
 	fp := filepicker.New()
 	fp.AllowedTypes = api.SupportedExtensions

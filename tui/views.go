@@ -40,45 +40,91 @@ func (m *Model) viewBrowser() string {
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
+// buildComposerContent returns the full composer form content (used for viewport).
+func (m *Model) buildComposerContent() string {
+	header := H2Style.Render("✍️  Compose New Post")
+	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
+	captionCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Caption"), m.input.View()),
+	)
+	altCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Alt text (accessibility)"), m.altTextInput.View()),
+	)
+	locationCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Location ID (Facebook Page ID)"), m.locationIDInput.View()),
+	)
+	userTagsCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("User tags (mention others)"), m.userTagsInput.View()),
+	)
+	shareToFeedCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Share reel to feed (y/n, for single video)"), m.shareToFeedInput.View()),
+	)
+	coverCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Reel cover URL (optional)"), m.coverURLInput.View()),
+	)
+	thumbCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Thumbnail offset (ms)"), m.thumbOffsetInput.View()),
+	)
+	collabCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Collaborators (comma-separated)"), m.collaboratorsInput.View()),
+	)
+	audioCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Original audio name (Reels)"), m.audioNameInput.View()),
+	)
+	postAsStoryCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Post as Story (y/n)"), m.postAsStoryInput.View()),
+	)
+	scheduleOpt := ScheduleOptions[m.scheduleChoiceIdx]
+	scheduleCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			InputLabelStyle.Render("When to post"),
+			BodyStyle.Render("⏱  "+scheduleOpt.Label)+" "+BodyTertiaryStyle.Render("(press t to change)"),
+		),
+	)
+	var customCard string
+	if scheduleOpt.Modifier == "" {
+		customCard = CardStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Left, InputLabelStyle.Render("Custom date & time"), m.customScheduleInput.View()),
+		)
+	}
+	helpText := BodyTertiaryStyle.Render(
+		"Actions:\n" +
+			"• Tab:   Next field (Caption → Alt → Location → User tags → Share → Cover → Thumb → Collab → Audio → Story → Time)\n" +
+			"• t:     Change schedule (now / 1h / 3h / 6h / 12h / 1 day / Custom)\n" +
+			"• Enter: Schedule post\n" +
+			"• d:     Save as Draft\n" +
+			"• q:     Cancel\n\n" +
+			"↑/↓ or PgUp/PgDn: Scroll to see all fields",
+	)
+	parts := []string{header, "", fileCountBadge, "", captionCard, "", altCard, "", locationCard, "", userTagsCard, "", shareToFeedCard, "", coverCard, "", thumbCard, "", collabCard, "", audioCard, "", postAsStoryCard, "", scheduleCard}
+	if customCard != "" {
+		parts = append(parts, "", customCard)
+	}
+	parts = append(parts, "", helpText)
+	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+}
+
 func (m *Model) viewComposer() string {
 	if m.isProcessing {
 		return ""
 	}
-
-	if !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
+	if len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
 		return SuccessStyle.Render("✅ Done! Your post is live.") + "\n\n" +
 			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
 	}
-
-	header := H2Style.Render("✍️  Compose New Post")
-
-	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
-
-	inputLabel := InputLabelStyle.Render("Caption")
-	inputBox := m.input.View()
-	inputCard := CardStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Left,
-			inputLabel,
-			inputBox,
-		),
-	)
-
-	helpText := BodyTertiaryStyle.Render(
-		"Actions:\n" +
-			"• Enter: Schedule/Post Now\n" +
-			"• d:     Save as Draft\n" +
-			"• q:     Cancel",
-	)
-
-	return lipgloss.JoinVertical(lipgloss.Left,
-		header,
-		"",
-		fileCountBadge,
-		"",
-		inputCard,
-		"",
-		helpText,
-	)
+	// Ensure viewport has content and size on every render (e.g. first frame when entering composer)
+	w := m.width - 4
+	if w < 20 {
+		w = 20
+	}
+	h := m.height - 12
+	if h < 8 {
+		h = 8
+	}
+	m.composerViewport.Width = w
+	m.composerViewport.Height = h
+	m.composerViewport.SetContent(m.buildComposerContent())
+	return m.composerViewport.View()
 }
 
 func (m *Model) viewDashboard() string {
