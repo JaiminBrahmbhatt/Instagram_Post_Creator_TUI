@@ -8,8 +8,6 @@ import (
 )
 
 func (m *Model) updateSetupView(msg tea.Msg) tea.Cmd {
-	var cmd tea.Cmd
-
 	// Handle Auto-Cleanup Confirmation
 	if m.setupStep == 1 {
 		if keyMsg, ok := msg.(tea.KeyMsg); ok && key.Matches(keyMsg, Keys.AutoCleanup) {
@@ -27,18 +25,20 @@ func (m *Model) updateSetupView(msg tea.Msg) tea.Cmd {
 		return nil
 	}
 
-	// Handle File Picker
-	m.fp, cmd = m.fp.Update(msg)
-	if didSelect, path := m.fp.DidSelectFile(msg); didSelect {
-		absPath, _ := filepath.Abs(path)
-		m.updatePhotoDir(absPath)
+	// Step 0: directory selection using browserTable
+	var cmd tea.Cmd
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch {
+		case key.Matches(keyMsg, Keys.Enter):
+			m.enterBrowserDirectory()
+		case key.Matches(keyMsg, Keys.Select):
+			absPath, _ := filepath.Abs(m.browserDir)
+			m.updatePhotoDir(absPath)
+		case key.Matches(keyMsg, Keys.Left):
+			m.parentDirectory()
+		}
+		return nil
 	}
-	// Fallback to Select key for directories if file picker didn't catch it naturally
-	if keyMsg, ok := msg.(tea.KeyMsg); ok && key.Matches(keyMsg, Keys.Select) {
-		path := m.fp.CurrentDirectory
-		absPath, _ := filepath.Abs(path)
-		m.updatePhotoDir(absPath)
-	}
-
+	m.browserTable, cmd = m.browserTable.Update(msg)
 	return cmd
 }

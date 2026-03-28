@@ -16,7 +16,6 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		browserTable:     NewBrowserTable(),
 		client:           client,
 		db:               database,
-		fp:               NewFilePicker(),
 		help:             help.New(),
 		input:            NewCaptionInput(),
 		ngrokInput:       NewNgrokInput(),
@@ -27,6 +26,8 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		logSub:           reportChan,
 		schedulerTrigger: triggerChan,
 		lastLogs:         []string{},
+		authFieldVisible:  make([]bool, 3),
+		ngrokFieldVisible: make([]bool, 2),
 		spinner:          spinner.New(spinner.WithSpinner(spinner.Points), spinner.WithStyle(SpinnerStyle)),
 		currentStatus:    "Sharing your story...",
 		tableLimit:       20,
@@ -39,10 +40,6 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 	if dir == "" {
 		m.currentView = SetupView
 		m.setupStep = 0
-		m.fp.DirAllowed = true
-		m.fp.FileAllowed = false
-		m.fp.ShowPermissions = false
-		m.fp.AllowedTypes = nil
 	} else {
 		absDir, err := filepath.Abs(dir)
 		if err != nil {
@@ -50,7 +47,6 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 		}
 		m.photosDir = absDir
 		m.browserDir = absDir
-		m.fp.CurrentDirectory = absDir
 		database.RunCleanup()
 		m.checkMediaCount()
 	}
@@ -60,7 +56,6 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 
 func (m *Model) Init() tea.Cmd {
 	return tea.Batch(
-		m.fp.Init(),
 		m.spinner.Tick,
 		watchLogsCmd(m.logSub),
 	)

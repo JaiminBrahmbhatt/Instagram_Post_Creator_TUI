@@ -1,10 +1,6 @@
 package tui
 
 import (
-	"os"
-
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -35,22 +31,6 @@ func NewCaptionInput() textinput.Model {
 	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
 	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
 	return ti
-}
-
-func NewFilePicker() filepicker.Model {
-	fp := filepicker.New()
-	fp.AllowedTypes = api.SupportedExtensions
-	fp.CurrentDirectory, _ = os.Getwd()
-	fp.SetHeight(20)
-
-	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
-	fp.Styles.Selected = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
-	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Info)
-	fp.Styles.File = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
-	fp.Styles.DisabledFile = lipgloss.NewStyle().Foreground(Theme.TextTertiary)
-	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
-
-	return fp
 }
 
 func NewMenu() list.Model {

@@ -6,7 +6,6 @@ import (
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -27,7 +26,6 @@ type Model struct {
 	client           *api.Client
 	currentView      ViewState
 	db               *db.Database
-	fp               filepicker.Model
 	help             help.Model
 	input            textinput.Model
 	ngrokInput       textinput.Model
@@ -61,6 +59,9 @@ type Model struct {
 	filterMode  bool
 	filterQuery string
 	sortMode    SortMode
+
+	authFieldVisible  []bool
+	ngrokFieldVisible []bool
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

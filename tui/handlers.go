@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -128,7 +127,6 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 			}
 			m.currentView = BrowserView
 			m.browserDir = m.photosDir
-			m.fp.AllowedTypes = api.SupportedExtensions
 			m.refreshBrowserTable()
 		case MenuTitleScheduledPosts:
 			m.refreshTable()

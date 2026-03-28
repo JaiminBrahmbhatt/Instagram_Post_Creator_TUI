@@ -127,9 +127,6 @@ func (m *Model) viewFooter() string {
 	var elements []string
 
 	currentPath := m.browserDir
-	if m.currentView == SetupView && m.setupStep == 0 {
-		currentPath = m.fp.CurrentDirectory
-	}
 	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
 		pathLine := CodeStyle.Render("📍 " + currentPath)
 		if m.filterQuery != "" {
@@ -266,14 +263,13 @@ func (m *Model) viewSetup() string {
 	header := H2Style.Render("First Time Setup")
 	if m.setupStep == 0 {
 		helpCard := InfoBoxStyle.Render(
-			BodySecondaryStyle.Render("Pick a directory for your photos"),
+			BodySecondaryStyle.Render("Navigate to your photos directory. Press 's' to select the current folder."),
 		)
 		return lipgloss.JoinVertical(lipgloss.Left,
-			header,
-			"",
-			helpCard,
-			"",
-			m.fp.View(),
+			header, "",
+			helpCard, "",
+			BodySecondaryStyle.Render("Current: ")+CodeStyle.Render(m.browserDir),
+			"", m.browserTable.View(),
 		)
 	}
 	questionCard := CardStyle.Render(
