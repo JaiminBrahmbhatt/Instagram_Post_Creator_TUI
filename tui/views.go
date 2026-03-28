@@ -232,20 +232,26 @@ func (m *Model) viewSettingsAuth() string {
 
 		inputView := m.authInputs[i].View()
 
+		visibleBadge := ""
+		if i < 2 && i < len(m.authFieldVisible) && m.authFieldVisible[i] {
+			visibleBadge = " " + BadgeWarningStyle.Render("[visible]")
+		}
+
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),
 			" ",
 			inputView,
+			visibleBadge,
 		)
 		rows = append(rows, row)
 	}
 
 	var helpText string
 	if m.authEditing {
-		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • q: cancel")
+		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • shift+tab: toggle visibility • q: cancel")
 	} else {
-		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: EDIT • q: back")
+		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: edit • shift+tab: toggle visibility • q: back")
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -293,7 +299,7 @@ func (m *Model) viewSettingsNgrok() string {
 	infoCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
 			BodySecondaryStyle.Render("Configure your Ngrok Authtoken and optional Static Domain."),
-			BodySecondaryStyle.Render("Press 'v' to toggle token visibility."),
+			BodySecondaryStyle.Render("Press shift+tab to toggle token visibility."),
 		),
 	)
 
@@ -303,6 +309,11 @@ func (m *Model) viewSettingsNgrok() string {
 	}
 
 	inputs := []textinput.Model{m.ngrokInput, m.domainInput}
+
+	tokenBadge := ""
+	if len(m.ngrokFieldVisible) > 0 && m.ngrokFieldVisible[0] {
+		tokenBadge = " " + BadgeWarningStyle.Render("[visible]")
+	}
 
 	var rows []string
 	for i := 0; i < 2; i++ {
@@ -321,16 +332,22 @@ func (m *Model) viewSettingsNgrok() string {
 
 		inputView := inputs[i].View()
 
+		badge := ""
+		if i == 0 {
+			badge = tokenBadge
+		}
+
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),
 			" ",
 			inputView,
+			badge,
 		)
 		rows = append(rows, row)
 	}
 
-	helpText := BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • v: toggle visibility • q: back")
+	helpText := BodyTertiaryStyle.Render("tab: switch • enter: save • shift+tab: toggle visibility • esc: back")
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
