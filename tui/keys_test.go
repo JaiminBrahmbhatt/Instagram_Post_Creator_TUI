@@ -23,11 +23,15 @@ func TestKeysTabAndShiftTabAreSeparate(t *testing.T) {
 	_ = key.NewBinding // ensure import used
 }
 
-func TestBackBindingIsEscOnly(t *testing.T) {
+func TestBackBindingIncludesQ(t *testing.T) {
+	found := false
 	for _, k := range Keys.Back.Keys() {
 		if k == "q" {
-			t.Error("Back binding must not include 'q' — q is Quit only")
+			found = true
 		}
+	}
+	if !found {
+		t.Error("Back binding must include 'q'")
 	}
 }
 
