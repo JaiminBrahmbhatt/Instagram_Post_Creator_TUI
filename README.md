@@ -1,96 +1,132 @@
 # Instagram Auto-Post TUI 📸
 
-A powerful, high-performance terminal tool to manage, schedule, and automate Instagram carousel posts directly from your workstation. Built with Go and the Bubble Tea framework for a refined developer experience.
+A terminal tool to manage, schedule, and automate Instagram carousel posts from your workstation. Includes both an interactive TUI and a headless CLI for scripting and agent-driven workflows.
 
-![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat-square&logo=go)
 ![TUI Framework](https://img.shields.io/badge/TUI-BubbleTea-00ADD8?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-## ✨ Features
+## Features
 
-- 🖥️ **Premium TUI**: A modular, tabbed interface featuring a dashboard, media browser, and scheduler.
-- 📁 **Advanced Media Browser**: Traverse directories, select multiple photos (up to 10 for carousels), and manage files with ease.
-- ⏳ **Smart Scheduler**: Background processing engine that polls Instagram container status to ensure reliable media publishing.
-- 📝 **Post Composer**: Dynamic captioning with support for both immediate scheduling and draft persistence.
-- 💾 **SQLite Persistence**: Reliable storage for posts, drafts, and application settings.
-- 🚇 **Native Tunneling**: Built-in Ngrok integration automatically exposes your local photos to Instagram secure and fast.
-- 🧹 **Auto-Cleanup**: Optional feature to delete posted media after 30 days, keeping your storage lean.
-- 🧪 **Dry Run Mode**: Validate your entire workflow and API interactions without actually publishing to Instagram.
+- **Interactive TUI** — Dashboard, media browser with filter/sort, scheduler view, post composer, and settings. Claude Code-inspired design language.
+- **Headless CLI** (`post-creator-cli`) — Full feature parity with structured JSON output. Designed for scripting and AI agent use.
+- **Media Browser** — Navigate directories, filter by name (`/`), cycle sort (`s`), go up a directory (`←`). Shows posted status per file.
+- **Scheduler** — Background scheduler in TUI mode; `scheduler run` for one-shot cron use; `scheduler daemon` for long-running service.
+- **SQLite Persistence** — Posts, media registry (with hash deduplication), and settings.
+- **Ngrok Tunneling** — Built-in ngrok integration to serve local photos to the Instagram API.
+- **Secret Visibility** — All credential fields masked by default; `Shift+Tab` toggles visibility with a `[visible]` badge.
+- **Dry Run Mode** — Full workflow validation without publishing.
 
-## 🚀 Getting Started
+## Prerequisites
 
-### 1. Prerequisites
+- **Go 1.25+**
+- **Instagram Business Account** linked to a Facebook Page with `instagram_content_publishing` permission
+- **[Ngrok Authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)** (free tier works)
 
-- **Go 1.21+** installed on your system.
-- **Instagram Business Account** linked to a Facebook Page.
-- **Facebook Developer App** with the `instagram_content_publishing` permission.
-- **Ngrok Account:** A free [Ngrok Authtoken](https://dashboard.ngrok.com/get-started/your-authtoken) is required to automatically create a secure tunnel for your local media files.
+## Getting Started
 
-### 2. Configuration
+```bash
+git clone https://github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI
+cd Instagram_Post_Creator_TUI
+go mod tidy
+```
 
-Clone the repository and create a `.env` file from the example:
+Copy the example env file and fill in your credentials:
 
 ```bash
 cp .env.example .env
 ```
 
-Edit your `.env` with the following parameters:
-
 ```env
-# Instagram API Credentials
 INSTA_ACCESS_TOKEN=your_access_token
 INSTA_IG_ID=your_instagram_business_account_id
-INSTA_APP_ID=your_app_id
-INSTA_APP_SECRET=your_app_secret
-
-# App Settings
-DRY_RUN=true                    # Set to false for production
+DRY_RUN=true   # set to false when ready to publish
 ```
 
-> **Note:** You can enter your **Ngrok Authtoken** directly in the application's **Settings** menu.
+> Ngrok authtoken and Instagram credentials can also be entered directly in the app's **Settings** menu and are stored securely in the system keyring.
 
-### 3. Installation & Usage
+## Running
 
 ```bash
-# Install dependencies
-go mod tidy
-
-# Run the application
+# Interactive TUI
 go run ./cmd/post-creator
+
+# Headless CLI
+go run ./cmd/cli -- --help
 ```
 
-## 🎮 Navigation & Shortcuts
+Or build binaries:
 
-| Key                | Action                                           |
-| ------------------ | ------------------------------------------------ |
-| `j`/`k` or `↑`/`↓` | Navigate/Scroll                                  |
-| `Enter`            | Select/Confirm/Enter Folder                      |
-| `s`                | Pick current directory as Home in Settings/Setup |
-| `c`                | Continue to Composer (from Browser)              |
-| `d`                | Save as Draft (in Composer)                      |
-| `Tab`              | Switch focus (in Auth/Settings)                  |
-| `q` / `Esc`        | Back / Exit view                                 |
-| `?`                | Toggle Help                                      |
-| `Ctrl+C`           | Force Quit                                       |
+```bash
+go build -o post-creator ./cmd/post-creator
+go build -o post-creator-cli ./cmd/cli
+```
 
-## 🏗️ Technical Architecture
+## CLI Usage
 
-The project follows a modular Go architecture:
+All commands output JSON. Use `--pretty` for human-readable output.
 
-- `cmd/`: Application entry point.
-- `tui/`: Bubble Tea components, handlers, and rendering logic (split into modular views).
-- `api/`: Instagram Content Publishing API client with custom retry logic and status polling.
-- `db/`: SQLite layer for persistent storage of settings and posts.
-- `scheduler/`: Background routine for managing scheduled tasks.
+```bash
+post-creator-cli [--skip-tunnel] [--db <path>] [--pretty] <command>
 
-## 🛠️ Development
+post-creator-cli auth set --token <token> --ig-id <id>
+post-creator-cli auth status
 
-To contribute or modify the tool:
+post-creator-cli post create --media beach.jpg --caption "Hello" [--schedule 2026-12-01T10:00:00Z]
+post-creator-cli post list [--status draft|scheduled|published|failed] [--limit 20]
+post-creator-cli post publish --id 3
+post-creator-cli post delete --id 3
 
-1. **Database Schema**: Managed via `db/schema.sql`.
-2. **Components**: UI elements are defined in `tui/components.go`.
-3. **Styles**: Global theme and colors are in `tui/styles.go`.
+post-creator-cli media scan [--dir ./photos]
+post-creator-cli media list [--unposted]
+post-creator-cli media ignore --id 5
+
+post-creator-cli scheduler run      # one-shot (use with cron)
+post-creator-cli scheduler daemon   # blocking loop (use as service)
+post-creator-cli scheduler status
+
+post-creator-cli settings get --key photos_dir
+post-creator-cli settings set --key photos_dir --value /path/to/photos
+post-creator-cli settings list
+
+post-creator-cli quota
+```
+
+**Cron example** — publish due posts every minute:
+```
+* * * * * /path/to/post-creator-cli --skip-tunnel scheduler run
+```
+
+## Keybindings (TUI)
+
+| Key | Action |
+|---|---|
+| `↑`/`↓` or `k`/`j` | Navigate |
+| `Enter` | Select / confirm / enter folder |
+| `Esc` / `q` | Back |
+| `Ctrl+C` | Quit |
+| `Tab` | Next field (auth/settings forms) |
+| `Shift+Tab` | Toggle secret field visibility |
+| `/` | Enter filter mode (browser) |
+| `s` | Cycle sort (browser) |
+| `←` | Go up directory (browser) |
+| `c` | Continue to composer (from browser) |
+| `d` | Save as draft (composer) |
+| `?` | Toggle help |
+
+## Architecture
+
+```
+cmd/post-creator/   TUI binary
+cmd/cli/            Headless CLI binary
+internal/app/       Shared infrastructure (DB, client, HTTP server, tunnel)
+api/                Instagram client, scheduler, publisher, auth, tunnel
+db/                 SQLite layer — posts, media, settings
+tui/                BubbleTea TUI (views, styles, keybindings, browser logic)
+```
+
+Credentials are stored in the **system keyring** (`zalando/go-keyring`) with fallback to environment variables.
 
 ---
 
-Built with ❤️ for creators who love the command line.
+Built for creators who live in the terminal.
