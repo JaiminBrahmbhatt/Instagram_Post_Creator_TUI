@@ -33,6 +33,7 @@ func (m *Model) enterBrowserDirectory() {
 	}
 	m.browserDir = newDir
 	m.filterQuery = ""
+	m.filterMode = false
 	m.refreshBrowserTable()
 	m.browserTable.GotoTop()
 }
@@ -49,6 +50,7 @@ func (m *Model) parentDirectory() {
 	}
 	m.browserDir = newDir
 	m.filterQuery = ""
+	m.filterMode = false
 	m.refreshBrowserTable()
 	m.browserTable.GotoTop()
 }
@@ -77,6 +79,7 @@ func (m *Model) handleBrowserSelection() {
 		}
 		m.browserDir = fullPath
 		m.filterQuery = ""
+		m.filterMode = false
 		m.refreshBrowserTable()
 		m.browserTable.GotoTop()
 	} else {
