@@ -2,10 +2,13 @@ package db
 
 import (
 	"database/sql"
-	"os"
+	"embed"
 
 	_ "github.com/mattn/go-sqlite3"
 )
+
+//go:embed schema.sql
+var schemaFS embed.FS
 
 type PostStatus string
 
@@ -28,72 +31,18 @@ func InitDB(path string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	d := &Database{Conn: db}
 	if err := d.executeSchema(); err != nil {
 		return nil, err
 	}
-
 	return d, nil
 }
 
 func (db *Database) executeSchema() error {
-	paths := []string{
-		"db/schema.sql",
-		"schema.sql",
-		"../db/schema.sql",
-	}
-
-	var schema []byte
-	var err error
-
-	for _, path := range paths {
-		schema, err = os.ReadFile(path)
-		if err == nil {
-			break
-		}
-	}
-
+	schema, err := schemaFS.ReadFile("schema.sql")
 	if err != nil {
-		schema = []byte(`
-CREATE TABLE IF NOT EXISTS media (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    path TEXT UNIQUE NOT NULL,
-    hash TEXT NOT NULL,
-    is_posted BOOLEAN DEFAULT FALSE,
-    ignore BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS posts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    caption TEXT,
-    scheduled_at TIMESTAMP,
-    published_at TIMESTAMP,
-    ig_container_id TEXT,
-    status TEXT CHECK(status IN ('draft', 'scheduled', 'publishing', 'published', 'failed')) DEFAULT 'draft',
-    engagement_likes INTEGER DEFAULT 0,
-    engagement_comments INTEGER DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS post_media (
-    post_id INTEGER,
-    media_id INTEGER,
-    display_order INTEGER,
-    ig_item_container_id TEXT,
-    PRIMARY KEY (post_id, media_id),
-    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (media_id) REFERENCES media(id)
-);
-
-CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-);
-`)
+		return err
 	}
-
 	_, err = db.Conn.Exec(string(schema))
 	return err
 }
