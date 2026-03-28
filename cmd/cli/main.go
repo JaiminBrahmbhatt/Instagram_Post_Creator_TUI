@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/cmd/cli/commands"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/internal/app"
@@ -33,7 +35,7 @@ func buildRoot() *cobra.Command {
 		Use:   "post-creator-cli",
 		Short: "Instagram post automation CLI",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			if cmd.Name() == "completion" || cmd.Name() == "help" {
+			if strings.Contains(cmd.CommandPath(), " completion") || cmd.Name() == "help" {
 				return nil
 			}
 			a, err := app.New(app.Config{DBPath: dbPath})
@@ -49,7 +51,9 @@ func buildRoot() *cobra.Command {
 		},
 		PersistentPostRun: func(cmd *cobra.Command, args []string) {
 			if application != nil {
-				application.Shutdown(context.Background())
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				application.Shutdown(ctx)
 			}
 		},
 	}
