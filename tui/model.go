@@ -56,6 +56,11 @@ type Model struct {
 	currentStatus    string
 	tableOffset      int
 	tableLimit       int
+
+	// Browser state
+	filterMode  bool
+	filterQuery string
+	sortMode    SortMode
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {

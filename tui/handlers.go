@@ -26,19 +26,51 @@ func (m *Model) handleBackKey() (tea.Model, tea.Cmd) {
 
 func (m *Model) updateBrowserView(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
-	m.browserTable, cmd = m.browserTable.Update(msg)
 
 	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if m.filterMode {
+			switch {
+			case key.Matches(keyMsg, Keys.Back):
+				m.filterMode = false
+				m.filterQuery = ""
+				m.refreshBrowserTable()
+				return nil
+			case keyMsg.Type == tea.KeyBackspace:
+				if len(m.filterQuery) > 0 {
+					m.filterQuery = m.filterQuery[:len(m.filterQuery)-1]
+					m.refreshBrowserTable()
+				}
+				return nil
+			case keyMsg.Type == tea.KeyRunes:
+				m.filterQuery += string(keyMsg.Runes)
+				m.refreshBrowserTable()
+				return nil
+			}
+			return nil
+		}
+
 		switch {
+		case key.Matches(keyMsg, Keys.Filter):
+			m.filterMode = true
+			return nil
+		case key.Matches(keyMsg, Keys.SortCycle):
+			m.sortMode = nextSort(m.sortMode)
+			m.refreshBrowserTable()
+			return nil
+		case key.Matches(keyMsg, Keys.Left):
+			m.parentDirectory()
+			return nil
 		case key.Matches(keyMsg, Keys.Enter):
 			m.handleBrowserSelection()
-		case key.Matches(keyMsg, Keys.Continue):
-			if len(m.selectedMedia) > 0 {
-				m.currentView = ComposerView
-				m.input.Focus()
-			}
+			return nil
+		case key.Matches(keyMsg, Keys.Continue) && len(m.selectedMedia) > 0:
+			m.currentView = ComposerView
+			m.input.Focus()
+			return nil
 		}
 	}
+
+	m.browserTable, cmd = m.browserTable.Update(msg)
 	return cmd
 }
 

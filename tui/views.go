@@ -131,7 +131,14 @@ func (m *Model) viewFooter() string {
 		currentPath = m.fp.CurrentDirectory
 	}
 	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
-		elements = append(elements, CodeStyle.Render("📍 "+currentPath))
+		pathLine := CodeStyle.Render("📍 " + currentPath)
+		if m.filterQuery != "" {
+			pathLine += "  " + BadgeInfoStyle.Render("filter: "+m.filterQuery)
+		}
+		if m.sortMode != SortNameAsc {
+			pathLine += "  " + BodyTertiaryStyle.Render("sort: "+m.sortMode.String())
+		}
+		elements = append(elements, pathLine)
 	}
 
 	if m.statusMsg != "" {
