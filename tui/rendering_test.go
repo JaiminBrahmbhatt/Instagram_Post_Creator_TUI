@@ -57,6 +57,23 @@ func TestComposerLayout(t *testing.T) {
 	}
 }
 
+func TestViewHeadersNoEmoji(t *testing.T) {
+	m := Model{
+		width:       80,
+		height:      24,
+		currentView: DashboardView,
+		quotaTotal:  25,
+		quotaUsage:  4,
+	}
+	output := m.viewDashboard()
+	if strings.Contains(output, "📊") {
+		t.Error("Dashboard header should not contain emoji 📊")
+	}
+	if !strings.Contains(output, "Dashboard") {
+		t.Error("Dashboard header should contain 'Dashboard'")
+	}
+}
+
 func TestFooterLayout(t *testing.T) {
 	m := Model{
 		browserDir:  "/tmp/test",

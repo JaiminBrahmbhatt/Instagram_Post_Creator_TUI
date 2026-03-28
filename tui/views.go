@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Model) viewBrowser() string {
-	header := H2Style.Render("📁 Media Browser")
+	header := H2Style.Render("Media Browser")
 
 	var selectionInfo string
 	if len(m.selectedMedia) > 0 {
@@ -50,7 +50,7 @@ func (m *Model) viewComposer() string {
 			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
 	}
 
-	header := H2Style.Render("✍️  Compose New Post")
+	header := H2Style.Render("Compose New Post")
 
 	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
 
@@ -82,7 +82,7 @@ func (m *Model) viewComposer() string {
 }
 
 func (m *Model) viewDashboard() string {
-	header := H2Style.Render("📊 Dashboard")
+	header := H2Style.Render("Dashboard")
 
 	quotaText := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 	if m.quotaTotal == 0 {
@@ -179,7 +179,7 @@ func (m *Model) cleanLogLine(line string) string {
 }
 
 func (m *Model) viewSettingsDir() string {
-	header := H2Style.Render("📁 Change Photos Directory")
+	header := H2Style.Render("Change Photos Directory")
 
 	helpCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -203,7 +203,7 @@ func (m *Model) viewSettingsDir() string {
 }
 
 func (m *Model) viewSettingsAuth() string {
-	header := H2Style.Render("⚙️  Environment Configuration")
+	header := H2Style.Render("Environment Configuration")
 
 	infoCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -263,7 +263,7 @@ func (m *Model) viewSettingsAuth() string {
 }
 
 func (m *Model) viewSetup() string {
-	header := H2Style.Render("🚀 First Time Setup")
+	header := H2Style.Render("First Time Setup")
 	if m.setupStep == 0 {
 		helpCard := InfoBoxStyle.Render(
 			BodySecondaryStyle.Render("Pick a directory for your photos"),
@@ -292,7 +292,7 @@ func (m *Model) viewSetup() string {
 }
 
 func (m *Model) viewSettingsNgrok() string {
-	header := H2Style.Render("🔐 Ngrok Configuration")
+	header := H2Style.Render("Ngrok Configuration")
 
 	infoCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
