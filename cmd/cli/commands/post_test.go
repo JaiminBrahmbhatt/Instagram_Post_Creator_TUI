@@ -93,6 +93,32 @@ func TestPostDelete(t *testing.T) {
 	}
 }
 
+func TestPostList_StatusFilter(t *testing.T) {
+	d, err := db.InitDB(":memory:")
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	dir := t.TempDir()
+	p1 := filepath.Join(dir, "e.jpg")
+	os.WriteFile(p1, []byte("img"), 0644)
+	d.SavePost("draft post", []string{p1}, "", db.StatusDraft)
+	d.SavePost("scheduled post", []string{p1}, "2026-12-01T10:00:00Z", db.StatusScheduled)
+
+	testApp := &appPkg.App{DB: d}
+	pretty := false
+	postCmd := commands.NewPostCmd(&testApp, &pretty)
+
+	resp := execCmd(t, postCmd, []string{"list", "--status", "draft"})
+	if resp["status"] != "ok" {
+		t.Fatalf("expected ok, got %v", resp)
+	}
+	data := resp["data"].(map[string]interface{})
+	posts := data["posts"].([]interface{})
+	if len(posts) != 1 {
+		t.Errorf("expected 1 draft post, got %d", len(posts))
+	}
+}
+
 func TestPostPublish_NilScheduler(t *testing.T) {
 	d, err := db.InitDB(":memory:")
 	if err != nil {

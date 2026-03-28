@@ -88,32 +88,12 @@ func newPostListCmd(a **appPkg.App, pretty *bool) *cobra.Command {
 			}
 			var items []postItem
 			if statusFilter != "" {
-				query := `
-					SELECT p.id, p.caption,
-					       COALESCE(p.scheduled_at, ''),
-					       COALESCE(p.published_at, ''),
-					       p.created_at,
-					       p.status,
-					       COUNT(pm.media_id)
-					FROM posts p
-					LEFT JOIN post_media pm ON p.id = pm.post_id
-					WHERE p.status = ?
-					GROUP BY p.id
-					ORDER BY p.id DESC
-					LIMIT ? OFFSET ?
-				`
-				rows, err := (*a).DB.Conn.Query(query, statusFilter, limit, 0)
+				posts, err := (*a).DB.GetPostsByStatus(db.PostStatus(statusFilter), limit, 0)
 				if err != nil {
 					output.Err(cmd.OutOrStdout(), err.Error(), *pretty)
 					return nil
 				}
-				defer rows.Close()
-				for rows.Next() {
-					var p db.Post
-					if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt, &p.PublishedAt, &p.CreatedAt, &p.Status, &p.MediaCount); err != nil {
-						output.Err(cmd.OutOrStdout(), err.Error(), *pretty)
-						return nil
-					}
+				for _, p := range posts {
 					items = append(items, postItem{
 						ID:          p.ID,
 						Status:      string(p.Status),

@@ -45,6 +45,39 @@ func (db *Database) GetPosts(limit, offset int) ([]Post, error) {
 	return posts, nil
 }
 
+// GetPostsByStatus returns posts filtered by status, newest first.
+func (db *Database) GetPostsByStatus(status PostStatus, limit, offset int) ([]Post, error) {
+	query := `
+		SELECT p.id, p.caption,
+		       COALESCE(p.scheduled_at, ''),
+		       COALESCE(p.published_at, ''),
+		       p.created_at,
+		       p.status,
+		       COUNT(pm.media_id)
+		FROM posts p
+		LEFT JOIN post_media pm ON p.id = pm.post_id
+		WHERE p.status = ?
+		GROUP BY p.id
+		ORDER BY p.id DESC
+		LIMIT ? OFFSET ?
+	`
+	rows, err := db.Conn.Query(query, status, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var posts []Post
+	for rows.Next() {
+		var p Post
+		if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt, &p.PublishedAt, &p.CreatedAt, &p.Status, &p.MediaCount); err != nil {
+			return nil, err
+		}
+		posts = append(posts, p)
+	}
+	return posts, rows.Err()
+}
+
 func (db *Database) GetScheduledPosts() ([]Post, error) {
 	rows, err := db.Conn.Query(`
 		SELECT id, caption FROM posts
