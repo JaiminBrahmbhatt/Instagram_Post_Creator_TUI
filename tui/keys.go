@@ -2,21 +2,23 @@ package tui
 
 import "github.com/charmbracelet/bubbles/key"
 
-// KeyMap defines all keybindings for the application.
 type KeyMap struct {
 	Up          key.Binding
 	Down        key.Binding
 	Left        key.Binding
 	Right       key.Binding
 	Enter       key.Binding
-	Back        key.Binding
-	Quit        key.Binding
-	Help        key.Binding // ?
-	Select      key.Binding // 's' for directory selection
-	Continue    key.Binding // 'c'
-	Draft       key.Binding // 'd'
-	AutoCleanup key.Binding // 'y'/'n'
-	Tab         key.Binding // tab
+	Back        key.Binding  // Esc only in sub-views
+	Quit        key.Binding  // q + ctrl+c on main menu
+	Help        key.Binding  // ?
+	Select      key.Binding  // s for directory selection
+	Continue    key.Binding  // c
+	Draft       key.Binding  // d
+	AutoCleanup key.Binding  // y/n
+	Tab         key.Binding  // tab only (next field)
+	ShiftTab    key.Binding  // shift+tab only (toggle secret visibility)
+	Filter      key.Binding  // / (enter filter mode)
+	SortCycle   key.Binding  // s (cycle sort in browser)
 }
 
 var Keys = KeyMap{
@@ -29,24 +31,24 @@ var Keys = KeyMap{
 		key.WithHelp("↓/j", "down"),
 	),
 	Left: key.NewBinding(
-		key.WithKeys("left", "h"),
-		key.WithHelp("←/h", "left"),
+		key.WithKeys("left"),
+		key.WithHelp("←", "up dir"),
 	),
 	Right: key.NewBinding(
-		key.WithKeys("right", "l"),
-		key.WithHelp("→/l", "right"),
+		key.WithKeys("right"),
+		key.WithHelp("→", "right"),
 	),
 	Enter: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "select"),
 	),
 	Back: key.NewBinding(
-		key.WithKeys("q", "esc"),
-		key.WithHelp("q/esc", "back"),
+		key.WithKeys("esc"),
+		key.WithHelp("esc", "back"),
 	),
 	Quit: key.NewBinding(
-		key.WithKeys("ctrl+c"),
-		key.WithHelp("ctrl+c", "quit"),
+		key.WithKeys("q", "ctrl+c"),
+		key.WithHelp("q", "quit"),
 	),
 	Help: key.NewBinding(
 		key.WithKeys("?"),
@@ -69,33 +71,45 @@ var Keys = KeyMap{
 		key.WithHelp("y/n", "confirm"),
 	),
 	Tab: key.NewBinding(
-		key.WithKeys("tab", "shift+tab"),
+		key.WithKeys("tab"),
 		key.WithHelp("tab", "next field"),
+	),
+	ShiftTab: key.NewBinding(
+		key.WithKeys("shift+tab"),
+		key.WithHelp("shift+tab", "toggle visibility"),
+	),
+	Filter: key.NewBinding(
+		key.WithKeys("/"),
+		key.WithHelp("/", "filter"),
+	),
+	SortCycle: key.NewBinding(
+		key.WithKeys("s"),
+		key.WithHelp("s", "sort"),
 	),
 }
 
-// BrowserKeyMap implements help.KeyMap for the media browser.
+// BrowserKeyMap for the media browser.
 type BrowserKeyMap struct {
 	KeyMap
 	HasSelection bool
 }
 
 func (k BrowserKeyMap) ShortHelp() []key.Binding {
-	kb := []key.Binding{k.Up, k.Down, k.Enter, k.Back, k.Help}
+	bindings := []key.Binding{k.Up, k.Down, k.Enter, k.Filter, k.SortCycle}
 	if k.HasSelection {
-		kb = append(kb, k.Continue)
+		bindings = append(bindings, k.Continue)
 	}
-	return kb
+	return append(bindings, k.Back)
 }
 
 func (k BrowserKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter},
-		{k.Back, k.Continue, k.Help},
+		{k.Up, k.Down, k.Enter, k.Left},
+		{k.Filter, k.SortCycle, k.Continue, k.Back},
 	}
 }
 
-// ComposerKeyMap implements help.KeyMap for the post composer.
+// ComposerKeyMap for the post composer.
 type ComposerKeyMap struct{ KeyMap }
 
 func (k ComposerKeyMap) ShortHelp() []key.Binding {
@@ -103,16 +117,13 @@ func (k ComposerKeyMap) ShortHelp() []key.Binding {
 }
 
 func (k ComposerKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Enter, k.Draft},
-		{k.Back, k.Help},
-	}
+	return [][]key.Binding{{k.Enter, k.Draft}, {k.Back, k.Help}}
 }
 
-// SetupKeyMap implements help.KeyMap for setup screens.
+// SetupKeyMap for setup screens.
 type SetupKeyMap struct {
 	KeyMap
-	Step int // 0: dir, 1: cleanup
+	Step int
 }
 
 func (k SetupKeyMap) ShortHelp() []key.Binding {
@@ -123,12 +134,10 @@ func (k SetupKeyMap) ShortHelp() []key.Binding {
 }
 
 func (k SetupKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		k.ShortHelp(),
-	}
+	return [][]key.Binding{k.ShortHelp()}
 }
 
-// SettingsDirKeyMap for the directory selector in settings.
+// SettingsDirKeyMap for directory selector.
 type SettingsDirKeyMap struct{ KeyMap }
 
 func (k SettingsDirKeyMap) ShortHelp() []key.Binding {
@@ -136,22 +145,16 @@ func (k SettingsDirKeyMap) ShortHelp() []key.Binding {
 }
 
 func (k SettingsDirKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Up, k.Down, k.Enter},
-		{k.Select, k.Back},
-	}
+	return [][]key.Binding{{k.Up, k.Down, k.Enter}, {k.Select, k.Back}}
 }
 
 // AuthKeyMap for credentials management.
 type AuthKeyMap struct{ KeyMap }
 
 func (k AuthKeyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Tab, k.Enter, k.Back}
+	return []key.Binding{k.Tab, k.ShiftTab, k.Enter, k.Back}
 }
 
 func (k AuthKeyMap) FullHelp() [][]key.Binding {
-	return [][]key.Binding{
-		{k.Tab, k.Enter},
-		{k.Back},
-	}
+	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
 }

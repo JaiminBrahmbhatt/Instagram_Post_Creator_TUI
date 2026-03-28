@@ -65,10 +65,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		switch {
-		case key.Matches(msg, Keys.Quit):
+		case m.currentView == MenuView && key.Matches(msg, Keys.Quit):
 			m.quitting = true
 			return m, tea.Quit
-		case key.Matches(msg, Keys.Back):
+		case m.currentView != MenuView && key.Matches(msg, Keys.Back):
 			return m.handleBackKey()
 		case key.Matches(msg, Keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
