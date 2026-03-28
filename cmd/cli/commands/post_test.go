@@ -8,6 +8,7 @@ import (
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/cmd/cli/commands"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
+	appPkg "github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/internal/app"
 )
 
 // createTempMediaFile creates a real temp file so CalculateHash works in SavePost.
@@ -89,5 +90,19 @@ func TestPostDelete(t *testing.T) {
 	resp := execCmd(t, postCmd, []string{"delete", "--id", fmt.Sprintf("%d", id)})
 	if resp["status"] != "ok" {
 		t.Fatalf("expected ok, got %v", resp)
+	}
+}
+
+func TestPostPublish_NilScheduler(t *testing.T) {
+	d, err := db.InitDB(":memory:")
+	if err != nil {
+		t.Fatalf("InitDB: %v", err)
+	}
+	pretty := false
+	testApp := &appPkg.App{DB: d}
+	postCmd := commands.NewPostCmd(&testApp, &pretty)
+	resp := execCmd(t, postCmd, []string{"publish", "--id", "1"})
+	if resp["status"] != "error" {
+		t.Errorf("expected error when scheduler is nil, got %v", resp["status"])
 	}
 }
