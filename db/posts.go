@@ -80,7 +80,7 @@ func (db *Database) GetPostsByStatus(status PostStatus, limit, offset int) ([]Po
 
 func (db *Database) GetScheduledPosts() ([]Post, error) {
 	rows, err := db.Conn.Query(`
-		SELECT id, caption FROM posts
+		SELECT id, caption, COALESCE(scheduled_at, '') FROM posts
 		WHERE status = 'scheduled'
 		AND scheduled_at <= CURRENT_TIMESTAMP
 	`)
@@ -92,7 +92,7 @@ func (db *Database) GetScheduledPosts() ([]Post, error) {
 	var posts []Post
 	for rows.Next() {
 		var p Post
-		if err := rows.Scan(&p.ID, &p.Caption); err != nil {
+		if err := rows.Scan(&p.ID, &p.Caption, &p.ScheduledAt); err != nil {
 			continue
 		}
 		posts = append(posts, p)
