@@ -1,10 +1,6 @@
 package tui
 
 import (
-	"os"
-
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/table"
@@ -37,22 +33,6 @@ func NewCaptionInput() textinput.Model {
 	return ti
 }
 
-func NewFilePicker() filepicker.Model {
-	fp := filepicker.New()
-	fp.AllowedTypes = api.SupportedExtensions
-	fp.CurrentDirectory, _ = os.Getwd()
-	fp.SetHeight(20)
-
-	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
-	fp.Styles.Selected = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
-	fp.Styles.Directory = lipgloss.NewStyle().Foreground(Theme.Info)
-	fp.Styles.File = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
-	fp.Styles.DisabledFile = lipgloss.NewStyle().Foreground(Theme.TextTertiary)
-	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
-
-	return fp
-}
-
 func NewMenu() list.Model {
 	items := []list.Item{
 		item{title: MenuTitleDashboard, desc: "View limits and engagement"},
@@ -64,7 +44,7 @@ func NewMenu() list.Model {
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = ""
 	l.SetShowStatusBar(false)
-	l.Styles.Title = TitleStyle
+	l.Styles.Title = H2Style
 	l.Styles.PaginationStyle = PaginationStyle
 	l.Styles.HelpStyle = HelpStyle
 	l.AdditionalShortHelpKeys = func() []key.Binding {
@@ -103,7 +83,7 @@ func NewSettingsList() list.Model {
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"
 	l.SetShowHelp(true)
-	l.Styles.Title = TitleStyle
+	l.Styles.Title = H2Style
 	l.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			Keys.Enter,

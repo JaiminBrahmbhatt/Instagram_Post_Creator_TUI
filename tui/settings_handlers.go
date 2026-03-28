@@ -98,7 +98,8 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 			case key.Matches(keyMsg, Keys.Enter):
 				m.authEditing = true
 				cmds = append(cmds, m.authInputs[m.authFocusIndex].Focus())
-				m.authInputs[m.authFocusIndex].EchoMode = textinput.EchoNormal
+			case key.Matches(keyMsg, Keys.ShiftTab):
+				m.toggleAuthFieldVisibility(m.authFocusIndex)
 			}
 			return tea.Batch(cmds...)
 		}
@@ -107,21 +108,24 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 		switch {
 		case key.Matches(keyMsg, Keys.Back): // Escape/q to stop editing
 			m.authEditing = false
+			m.resetAuthEchoModes()
 			for i := range m.authInputs {
 				m.authInputs[i].Blur()
-				m.authInputs[i].EchoMode = textinput.EchoPassword
 			}
 			return nil
+		case key.Matches(keyMsg, Keys.ShiftTab):
+			m.toggleAuthFieldVisibility(m.authFocusIndex)
 		case key.Matches(keyMsg, Keys.Tab):
 			m.authFocusIndex = (m.authFocusIndex + 1) % len(m.authInputs)
 			for i := range m.authInputs {
 				if i == m.authFocusIndex {
 					cmds = append(cmds, m.authInputs[i].Focus())
-					m.authInputs[i].EchoMode = textinput.EchoNormal
 				} else {
 					m.authInputs[i].Blur()
-					if i < 2 {
+					if i < 2 && !m.authFieldVisible[i] {
 						m.authInputs[i].EchoMode = textinput.EchoPassword
+					} else if i < 2 {
+						m.authInputs[i].EchoMode = textinput.EchoNormal
 					} else {
 						m.authInputs[i].EchoMode = textinput.EchoNormal
 					}
@@ -133,11 +137,12 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 				for i := range m.authInputs {
 					if i == m.authFocusIndex {
 						cmds = append(cmds, m.authInputs[i].Focus())
-						m.authInputs[i].EchoMode = textinput.EchoNormal
 					} else {
 						m.authInputs[i].Blur()
-						if i < 2 {
+						if i < 2 && !m.authFieldVisible[i] {
 							m.authInputs[i].EchoMode = textinput.EchoPassword
+						} else if i < 2 {
+							m.authInputs[i].EchoMode = textinput.EchoNormal
 						} else {
 							m.authInputs[i].EchoMode = textinput.EchoNormal
 						}
@@ -161,6 +166,7 @@ func (m *Model) updateSettingsAuthView(msg tea.Msg) tea.Cmd {
 					m.client.AccessToken = token
 					m.client.IGID = igID
 
+					m.resetAuthEchoModes()
 					m.statusMsg = "Configuration saved!"
 					m.currentView = SettingsView
 					m.authEditing = false
@@ -188,7 +194,11 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 		case key.Matches(keyMsg, Keys.Back):
 			m.ngrokInput.Blur()
 			m.domainInput.Blur()
+			m.resetNgrokEchoModes()
 			m.currentView = SettingsView
+			return nil
+		case key.Matches(keyMsg, Keys.ShiftTab):
+			m.toggleNgrokFieldVisibility(m.ngrokFocusIndex)
 			return nil
 		case key.Matches(keyMsg, Keys.Tab):
 			m.ngrokFocusIndex = (m.ngrokFocusIndex + 1) % 2
@@ -221,18 +231,8 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 			}
 			m.ngrokInput.Blur()
 			m.domainInput.Blur()
+			m.resetNgrokEchoModes()
 			m.currentView = SettingsView
-			return nil
-		case keyMsg.String() == "v":
-			// Toggle visibility for focused input
-			if m.ngrokFocusIndex == 0 {
-				if m.ngrokInput.EchoMode == textinput.EchoPassword {
-					m.ngrokInput.EchoMode = textinput.EchoNormal
-				} else {
-					m.ngrokInput.EchoMode = textinput.EchoPassword
-				}
-			}
-			// Return early to prevent 'v' from being typed into the input
 			return nil
 		}
 	}
@@ -245,4 +245,50 @@ func (m *Model) updateSettingsNgrokView(msg tea.Msg) tea.Cmd {
 	cmds = append(cmds, cmd)
 
 	return tea.Batch(cmds...)
+}
+
+// toggleAuthFieldVisibility toggles EchoMode for the given auth field.
+// Index 2 (dry_run) is never a secret.
+func (m *Model) toggleAuthFieldVisibility(idx int) {
+	if idx >= len(m.authFieldVisible) || idx >= 2 {
+		return
+	}
+	m.authFieldVisible[idx] = !m.authFieldVisible[idx]
+	if m.authFieldVisible[idx] {
+		m.authInputs[idx].EchoMode = textinput.EchoNormal
+	} else {
+		m.authInputs[idx].EchoMode = textinput.EchoPassword
+	}
+}
+
+// resetAuthEchoModes hides all auth secret fields.
+func (m *Model) resetAuthEchoModes() {
+	for i := 0; i < 2 && i < len(m.authInputs); i++ {
+		m.authInputs[i].EchoMode = textinput.EchoPassword
+		if i < len(m.authFieldVisible) {
+			m.authFieldVisible[i] = false
+		}
+	}
+}
+
+// toggleNgrokFieldVisibility toggles EchoMode for the ngrok token field.
+// Only index 0 (token) is a secret; domain (index 1) is never hidden.
+func (m *Model) toggleNgrokFieldVisibility(idx int) {
+	if idx != 0 {
+		return
+	}
+	m.ngrokFieldVisible[0] = !m.ngrokFieldVisible[0]
+	if m.ngrokFieldVisible[0] {
+		m.ngrokInput.EchoMode = textinput.EchoNormal
+	} else {
+		m.ngrokInput.EchoMode = textinput.EchoPassword
+	}
+}
+
+// resetNgrokEchoModes hides the ngrok token field.
+func (m *Model) resetNgrokEchoModes() {
+	m.ngrokInput.EchoMode = textinput.EchoPassword
+	if len(m.ngrokFieldVisible) > 0 {
+		m.ngrokFieldVisible[0] = false
+	}
 }

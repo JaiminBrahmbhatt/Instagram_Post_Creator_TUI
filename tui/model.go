@@ -6,7 +6,6 @@ import (
 
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
-	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -27,7 +26,6 @@ type Model struct {
 	client           *api.Client
 	currentView      ViewState
 	db               *db.Database
-	fp               filepicker.Model
 	help             help.Model
 	input            textinput.Model
 	ngrokInput       textinput.Model
@@ -56,6 +54,14 @@ type Model struct {
 	currentStatus    string
 	tableOffset      int
 	tableLimit       int
+
+	// Browser state
+	filterMode  bool
+	filterQuery string
+	sortMode    SortMode
+
+	authFieldVisible  []bool
+	ngrokFieldVisible []bool
 }
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -65,10 +71,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		switch {
-		case key.Matches(msg, Keys.Quit):
+		case m.currentView == MenuView && key.Matches(msg, Keys.Quit):
 			m.quitting = true
 			return m, tea.Quit
-		case key.Matches(msg, Keys.Back):
+		case m.currentView != MenuView && key.Matches(msg, Keys.Back):
 			return m.handleBackKey()
 		case key.Matches(msg, Keys.Help):
 			m.help.ShowAll = !m.help.ShowAll
@@ -102,7 +108,7 @@ func (m *Model) View() string {
 	}
 
 	if m.showLimitWarn {
-		return DocStyle.Render(WarnStyle.Render(fmt.Sprintf(
+		return AppContainerStyle.Render(WarningBoxStyle.Render(fmt.Sprintf(
 			"⚠️  PHOTO LIMIT REACHED\n\nYou have %d photos in your directory.\nPlease remove older photos if they are irrelevant or already posted.\n\nPress Enter to continue...",
 			m.mediaCount,
 		)))
@@ -111,10 +117,10 @@ func (m *Model) View() string {
 	var content string
 	if m.isProcessing {
 		content = m.renderProcessingView()
-		return DocStyle.Render(content)
+		return AppContainerStyle.Render(content)
 	} else if m.showSuccess {
 		content = m.renderSuccessView()
-		return DocStyle.Render(content)
+		return AppContainerStyle.Render(content)
 	} else {
 		content = m.renderCurrentView()
 	}

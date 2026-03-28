@@ -12,7 +12,7 @@ import (
 )
 
 func (m *Model) viewBrowser() string {
-	header := H2Style.Render("📁 Media Browser")
+	header := H2Style.Render("Media Browser")
 
 	var selectionInfo string
 	if len(m.selectedMedia) > 0 {
@@ -50,7 +50,7 @@ func (m *Model) viewComposer() string {
 			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
 	}
 
-	header := H2Style.Render("✍️  Compose New Post")
+	header := H2Style.Render("Compose New Post")
 
 	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
 
@@ -82,7 +82,7 @@ func (m *Model) viewComposer() string {
 }
 
 func (m *Model) viewDashboard() string {
-	header := H2Style.Render("📊 Dashboard")
+	header := H2Style.Render("Dashboard")
 
 	quotaText := fmt.Sprintf("%d / %d posts used", m.quotaUsage, m.quotaTotal)
 	if m.quotaTotal == 0 {
@@ -127,15 +127,19 @@ func (m *Model) viewFooter() string {
 	var elements []string
 
 	currentPath := m.browserDir
-	if m.currentView == SetupView && m.setupStep == 0 {
-		currentPath = m.fp.CurrentDirectory
-	}
 	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
-		elements = append(elements, PathStyle.Render("📍 "+currentPath))
+		pathLine := CodeStyle.Render("📍 " + currentPath)
+		if m.filterQuery != "" {
+			pathLine += "  " + BadgeInfoStyle.Render("filter: "+m.filterQuery)
+		}
+		if m.sortMode != SortNameAsc {
+			pathLine += "  " + BodyTertiaryStyle.Render("sort: "+m.sortMode.String())
+		}
+		elements = append(elements, pathLine)
 	}
 
 	if m.statusMsg != "" {
-		elements = append(elements, StatusMsgStyle.Render(m.statusMsg))
+		elements = append(elements, SuccessStyle.Render(m.statusMsg))
 	}
 
 	if m.currentView != MenuView && m.currentView != SettingsView {
@@ -172,7 +176,7 @@ func (m *Model) cleanLogLine(line string) string {
 }
 
 func (m *Model) viewSettingsDir() string {
-	header := H2Style.Render("📁 Change Photos Directory")
+	header := H2Style.Render("Change Photos Directory")
 
 	helpCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -196,7 +200,7 @@ func (m *Model) viewSettingsDir() string {
 }
 
 func (m *Model) viewSettingsAuth() string {
-	header := H2Style.Render("⚙️  Environment Configuration")
+	header := H2Style.Render("Environment Configuration")
 
 	infoCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
@@ -228,20 +232,26 @@ func (m *Model) viewSettingsAuth() string {
 
 		inputView := m.authInputs[i].View()
 
+		visibleBadge := ""
+		if i < 2 && i < len(m.authFieldVisible) && m.authFieldVisible[i] {
+			visibleBadge = " " + BadgeWarningStyle.Render("[visible]")
+		}
+
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),
 			" ",
 			inputView,
+			visibleBadge,
 		)
 		rows = append(rows, row)
 	}
 
 	var helpText string
 	if m.authEditing {
-		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • q: cancel")
+		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • shift+tab: toggle visibility • q: cancel")
 	} else {
-		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: EDIT • q: back")
+		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: edit • shift+tab: toggle visibility • q: back")
 	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
@@ -256,17 +266,16 @@ func (m *Model) viewSettingsAuth() string {
 }
 
 func (m *Model) viewSetup() string {
-	header := H2Style.Render("🚀 First Time Setup")
+	header := H2Style.Render("First Time Setup")
 	if m.setupStep == 0 {
 		helpCard := InfoBoxStyle.Render(
-			BodySecondaryStyle.Render("Pick a directory for your photos"),
+			BodySecondaryStyle.Render("Navigate to your photos directory. Press 's' to select the current folder."),
 		)
 		return lipgloss.JoinVertical(lipgloss.Left,
-			header,
-			"",
-			helpCard,
-			"",
-			m.fp.View(),
+			header, "",
+			helpCard, "",
+			BodySecondaryStyle.Render("Current: ")+CodeStyle.Render(m.browserDir),
+			"", m.browserTable.View(),
 		)
 	}
 	questionCard := CardStyle.Render(
@@ -285,12 +294,12 @@ func (m *Model) viewSetup() string {
 }
 
 func (m *Model) viewSettingsNgrok() string {
-	header := H2Style.Render("🔐 Ngrok Configuration")
+	header := H2Style.Render("Ngrok Configuration")
 
 	infoCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
 			BodySecondaryStyle.Render("Configure your Ngrok Authtoken and optional Static Domain."),
-			BodySecondaryStyle.Render("Press 'v' to toggle token visibility."),
+			BodySecondaryStyle.Render("Press shift+tab to toggle token visibility."),
 		),
 	)
 
@@ -300,6 +309,11 @@ func (m *Model) viewSettingsNgrok() string {
 	}
 
 	inputs := []textinput.Model{m.ngrokInput, m.domainInput}
+
+	tokenBadge := ""
+	if len(m.ngrokFieldVisible) > 0 && m.ngrokFieldVisible[0] {
+		tokenBadge = " " + BadgeWarningStyle.Render("[visible]")
+	}
 
 	var rows []string
 	for i := 0; i < 2; i++ {
@@ -318,16 +332,22 @@ func (m *Model) viewSettingsNgrok() string {
 
 		inputView := inputs[i].View()
 
+		badge := ""
+		if i == 0 {
+			badge = tokenBadge
+		}
+
 		row := lipgloss.JoinHorizontal(lipgloss.Left,
 			indicator,
 			labelStyle.Render(labelText),
 			" ",
 			inputView,
+			badge,
 		)
 		rows = append(rows, row)
 	}
 
-	helpText := BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • v: toggle visibility • q: back")
+	helpText := BodyTertiaryStyle.Render("tab: switch • enter: save • shift+tab: toggle visibility • esc: back")
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,

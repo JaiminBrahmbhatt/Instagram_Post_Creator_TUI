@@ -16,6 +16,8 @@ const (
 	SpaceMD = 3
 	SpaceLG = 4
 	SpaceXL = 6
+
+	PhotoLimitThreshold = 1000
 )
 
 // Color Palette - Refined for better visual hierarchy
@@ -49,24 +51,24 @@ type ColorTheme struct {
 }
 
 var Theme = ColorTheme{
-	// Primary - Purple accent (Claude-inspired)
-	Primary:       lipgloss.Color("#8B7FD8"),
-	PrimaryDim:    lipgloss.Color("#6B5FB8"),
-	PrimaryBright: lipgloss.Color("#AB9FF8"),
+	// Primary — Claude Code clay/salmon
+	Primary:       lipgloss.Color("#DA7756"),
+	PrimaryDim:    lipgloss.Color("#B85A38"),
+	PrimaryBright: lipgloss.Color("#E8956D"),
 
-	// Neutrals - Dark theme
-	Background: lipgloss.Color("#1E1E2E"),
-	Surface:    lipgloss.Color("#2A2A3C"),
-	Border:     lipgloss.Color("#3E3E52"),
-	BorderDim:  lipgloss.Color("#2E2E3E"),
+	// Neutrals — near-black dark theme
+	Background: lipgloss.Color("#1A1A1A"),
+	Surface:    lipgloss.Color("#1C1C1C"),
+	Border:     lipgloss.Color("#333333"),
+	BorderDim:  lipgloss.Color("#2A2A2A"),
 
 	// Text hierarchy
 	TextPrimary:   lipgloss.Color("#E0DEF4"),
 	TextSecondary: lipgloss.Color("#A6AEBF"),
 	TextTertiary:  lipgloss.Color("#6E7681"),
-	TextInverse:   lipgloss.Color("#1E1E2E"),
+	TextInverse:   lipgloss.Color("#1A1A1A"),
 
-	// Semantic
+	// Semantic — unchanged
 	Success:    lipgloss.Color("#7DC4A0"),
 	SuccessDim: lipgloss.Color("#5DA480"),
 	Error:      lipgloss.Color("#E88388"),
@@ -76,20 +78,6 @@ var Theme = ColorTheme{
 	Info:       lipgloss.Color("#7AA2F7"),
 	InfoDim:    lipgloss.Color("#5A82D7"),
 }
-
-// Legacy compatibility
-var (
-	ColorPrimary   = Theme.Primary
-	ColorSecondary = Theme.TextPrimary
-	ColorDarkGray  = Theme.Surface
-	ColorError     = Theme.Error
-	ColorSuccess   = Theme.Success
-	ColorAccent    = Theme.PrimaryBright
-	ColorLogGray   = Theme.TextTertiary
-	ColorSubtle    = Theme.TextSecondary
-
-	PhotoLimitThreshold = 1000
-)
 
 // ============================================================================
 // LAYOUT STYLES
@@ -105,8 +93,7 @@ var (
 			Foreground(Theme.TextInverse).
 			Background(Theme.Primary).
 			Padding(0, SpaceSM).
-			Bold(true).
-			Width(100)
+			Bold(true)
 
 	// Breadcrumb navigation
 	BreadcrumbStyle = lipgloss.NewStyle().
@@ -371,16 +358,10 @@ var (
 )
 
 // ============================================================================
-// LEGACY COMPATIBILITY
+// LIST STYLES
 // ============================================================================
 
 var (
-	// Keep old names for backward compatibility
-	TitleStyle = H2Style
-	DocStyle   = AppContainerStyle
-	PathStyle  = CodeStyle
-
-	// List component styles
 	PaginationStyle = list.DefaultStyles().PaginationStyle.
 			Foreground(Theme.TextSecondary).
 			PaddingLeft(SpaceMD)
@@ -389,10 +370,6 @@ var (
 			Foreground(Theme.TextTertiary).
 			PaddingLeft(SpaceMD).
 			PaddingBottom(SpaceXS)
-
-	// Deprecated - use semantic styles
-	WarnStyle      = WarningBoxStyle
-	StatusMsgStyle = SuccessStyle
 )
 
 // ============================================================================

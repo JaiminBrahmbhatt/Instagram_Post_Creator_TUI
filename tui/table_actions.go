@@ -2,12 +2,10 @@ package tui
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 
-	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	"github.com/charmbracelet/bubbles/table"
 )
@@ -18,32 +16,43 @@ func (m *Model) enterBrowserDirectory() {
 		return
 	}
 	name := selectedRow[1]
-
-	if strings.HasPrefix(name, "📁") || strings.Contains(name, "..") {
-		cleanName := strings.TrimPrefix(name, "📁 ")
-		cleanName = strings.TrimSuffix(cleanName, "/")
-
-		newDir := ""
-		if cleanName == ".." {
-			newDir = filepath.Dir(m.browserDir)
-		} else {
-			newDir = filepath.Join(m.browserDir, cleanName)
-		}
-
-		// Prevent breakout from photosDir if we are in Media Browser mode
-		if (m.currentView == BrowserView) && m.photosDir != "" {
-			absNew, _ := filepath.Abs(newDir)
-			absRoot, _ := filepath.Abs(m.photosDir)
-			rel, err := filepath.Rel(absRoot, absNew)
-			if err != nil || strings.HasPrefix(rel, "..") {
-				return
-			}
-		}
-
-		m.browserDir = newDir
-		m.refreshBrowserTable()
-		m.browserTable.GotoTop()
+	if !strings.HasPrefix(name, "📁") {
+		return
 	}
+	cleanName := strings.TrimPrefix(name, "📁 ")
+	cleanName = strings.TrimSuffix(cleanName, "/")
+	newDir := filepath.Join(m.browserDir, cleanName)
+
+	if m.currentView == BrowserView && m.photosDir != "" {
+		absNew, _ := filepath.Abs(newDir)
+		absRoot, _ := filepath.Abs(m.photosDir)
+		rel, err := filepath.Rel(absRoot, absNew)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return
+		}
+	}
+	m.browserDir = newDir
+	m.filterQuery = ""
+	m.filterMode = false
+	m.refreshBrowserTable()
+	m.browserTable.GotoTop()
+}
+
+func (m *Model) parentDirectory() {
+	newDir := filepath.Dir(m.browserDir)
+	if m.currentView == BrowserView && m.photosDir != "" {
+		absNew, _ := filepath.Abs(newDir)
+		absRoot, _ := filepath.Abs(m.photosDir)
+		rel, err := filepath.Rel(absRoot, absNew)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return
+		}
+	}
+	m.browserDir = newDir
+	m.filterQuery = ""
+	m.filterMode = false
+	m.refreshBrowserTable()
+	m.browserTable.GotoTop()
 }
 
 func (m *Model) handleBrowserSelection() {
@@ -57,12 +66,6 @@ func (m *Model) handleBrowserSelection() {
 	cleanName = strings.TrimSuffix(cleanName, "/")
 	cleanName = strings.TrimPrefix(cleanName, "📄 ")
 
-	if cleanName == ".." {
-		m.browserDir = filepath.Dir(m.browserDir)
-		m.refreshBrowserTable()
-		return
-	}
-
 	fullPath := filepath.Join(m.browserDir, cleanName)
 	if isDir {
 		// Path traversal check
@@ -75,6 +78,8 @@ func (m *Model) handleBrowserSelection() {
 			}
 		}
 		m.browserDir = fullPath
+		m.filterQuery = ""
+		m.filterMode = false
 		m.refreshBrowserTable()
 		m.browserTable.GotoTop()
 	} else {
@@ -90,48 +95,26 @@ func (m *Model) handleBrowserSelection() {
 }
 
 func (m *Model) refreshBrowserTable() {
-	files, err := os.ReadDir(m.browserDir)
-	if err != nil {
-		m.statusMsg = "Error reading dir: " + err.Error()
-		return
-	}
-
-	var rows []table.Row
-	if m.browserDir != "/" {
-		rows = append(rows, table.Row{" ", "..", "", ""})
-	}
-
 	onlyDirs := m.currentView == SettingsDirView || (m.currentView == SetupView && m.setupStep == 0)
 
-	for _, f := range files {
-		info, _ := f.Info()
-		name := f.Name()
-		size, mod, icon := "", "", "📄"
-
-		if f.IsDir() {
-			icon = "📁"
-			name = name + "/"
-		} else {
-			if onlyDirs {
-				continue
-			}
-			ext := strings.ToLower(filepath.Ext(name))
-			if !slices.Contains(api.SupportedExtensions, ext) {
-				continue
-			}
-			size = fmt.Sprintf("%.1f KB", float64(info.Size())/1024)
-			mod = info.ModTime().Format("2006-01-02 15:04")
+	postedPaths := make(map[string]bool)
+	if rows, err := m.db.Conn.Query("SELECT path FROM media WHERE is_posted=1"); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var p string
+			rows.Scan(&p)
+			abs, _ := filepath.Abs(p)
+			postedPaths[abs] = true
 		}
-
-		selected := " "
-		if !onlyDirs {
-			if slices.Contains(m.selectedMedia, filepath.Join(m.browserDir, f.Name())) {
-				selected = "✓"
-			}
-		}
-
-		rows = append(rows, table.Row{selected, icon + " " + name, size, mod})
 	}
+
+	rows := buildBrowserRows(m.browserDir, m.selectedMedia, onlyDirs, postedPaths)
+	if m.filterQuery != "" {
+		rows = filterBrowserRows(rows, m.filterQuery)
+	}
+	rows = sortBrowserRows(rows, m.sortMode)
+
+	m.browserTable.SetColumns(browserColumns(m.width - 4))
 	m.browserTable.SetRows(rows)
 }
 

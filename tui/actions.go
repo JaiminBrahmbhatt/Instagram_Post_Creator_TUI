@@ -37,14 +37,13 @@ func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
 	m.width = msg.Width
 	m.height = msg.Height
 	m.help.Width = msg.Width
-	h, v := DocStyle.GetFrameSize()
+	h, v := AppContainerStyle.GetFrameSize()
 	baseHeight := msg.Height - v - 1
 
 	m.list.SetSize(msg.Width-h, baseHeight)
 	m.settingsList.SetSize(msg.Width-h, baseHeight)
 
 	manualFooterHeight := 4
-	m.fp.SetHeight(msg.Height - v - manualFooterHeight - 2)
 	m.table.SetHeight(msg.Height - v - manualFooterHeight - 4)
 }
 
@@ -85,9 +84,6 @@ func (m *Model) updatePhotoDir(path string) {
 	m.db.SetSetting("photos_dir", path)
 	if m.currentView == SetupView {
 		m.setupStep = 1
-		m.fp.DirAllowed = false
-		m.fp.FileAllowed = true
-		m.fp.CurrentDirectory = path
 	} else {
 		m.currentView = SettingsView
 		m.statusMsg = "Photo directory updated!"
