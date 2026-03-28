@@ -102,7 +102,7 @@ func (m *Model) View() string {
 	}
 
 	if m.showLimitWarn {
-		return DocStyle.Render(WarnStyle.Render(fmt.Sprintf(
+		return AppContainerStyle.Render(WarningBoxStyle.Render(fmt.Sprintf(
 			"⚠️  PHOTO LIMIT REACHED\n\nYou have %d photos in your directory.\nPlease remove older photos if they are irrelevant or already posted.\n\nPress Enter to continue...",
 			m.mediaCount,
 		)))
@@ -111,10 +111,10 @@ func (m *Model) View() string {
 	var content string
 	if m.isProcessing {
 		content = m.renderProcessingView()
-		return DocStyle.Render(content)
+		return AppContainerStyle.Render(content)
 	} else if m.showSuccess {
 		content = m.renderSuccessView()
-		return DocStyle.Render(content)
+		return AppContainerStyle.Render(content)
 	} else {
 		content = m.renderCurrentView()
 	}

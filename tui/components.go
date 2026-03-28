@@ -64,7 +64,7 @@ func NewMenu() list.Model {
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = ""
 	l.SetShowStatusBar(false)
-	l.Styles.Title = TitleStyle
+	l.Styles.Title = H2Style
 	l.Styles.PaginationStyle = PaginationStyle
 	l.Styles.HelpStyle = HelpStyle
 	l.AdditionalShortHelpKeys = func() []key.Binding {
@@ -103,7 +103,7 @@ func NewSettingsList() list.Model {
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"
 	l.SetShowHelp(true)
-	l.Styles.Title = TitleStyle
+	l.Styles.Title = H2Style
 	l.AdditionalShortHelpKeys = func() []key.Binding {
 		return []key.Binding{
 			Keys.Enter,

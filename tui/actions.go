@@ -37,7 +37,7 @@ func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
 	m.width = msg.Width
 	m.height = msg.Height
 	m.help.Width = msg.Width
-	h, v := DocStyle.GetFrameSize()
+	h, v := AppContainerStyle.GetFrameSize()
 	baseHeight := msg.Height - v - 1
 
 	m.list.SetSize(msg.Width-h, baseHeight)

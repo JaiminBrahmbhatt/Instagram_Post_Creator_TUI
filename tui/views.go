@@ -131,11 +131,11 @@ func (m *Model) viewFooter() string {
 		currentPath = m.fp.CurrentDirectory
 	}
 	if currentPath != "" && (m.currentView == BrowserView || m.currentView == SettingsDirView) {
-		elements = append(elements, PathStyle.Render("📍 "+currentPath))
+		elements = append(elements, CodeStyle.Render("📍 "+currentPath))
 	}
 
 	if m.statusMsg != "" {
-		elements = append(elements, StatusMsgStyle.Render(m.statusMsg))
+		elements = append(elements, SuccessStyle.Render(m.statusMsg))
 	}
 
 	if m.currentView != MenuView && m.currentView != SettingsView {

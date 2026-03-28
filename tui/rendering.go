@@ -7,20 +7,10 @@ import (
 )
 
 func (m *Model) renderAppShell(content string) string {
-	header := AppHeaderStyle.Render("📸 Instagram Auto-Post")
-
-	var breadcrumb string
-	if m.currentView != MenuView {
-		breadcrumb = m.renderBreadcrumb()
-	}
-
-	parts := []string{header}
-	if breadcrumb != "" {
-		parts = append(parts, breadcrumb)
-	}
-	parts = append(parts, AppContainerStyle.Render(content))
-
-	return lipgloss.JoinVertical(lipgloss.Left, parts...)
+	header := AppHeaderStyle.Width(m.width).Render("Instagram Auto-Post")
+	return AppContainerStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left, header, content),
+	)
 }
 
 func (m *Model) renderBreadcrumb() string {
