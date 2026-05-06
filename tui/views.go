@@ -29,27 +29,27 @@ func (m *Model) viewBrowser() string {
 		)
 	}
 
-	helpText := BodyTertiaryStyle.Render("Enter: toggle • c: continue • q: back")
-
 	parts := []string{header}
 	if selectionInfo != "" {
 		parts = append(parts, selectionInfo)
 	}
-	parts = append(parts, m.browserTable.View(), "", helpText)
+
+	if m.filterMode {
+		cursor := lipgloss.NewStyle().Foreground(Theme.Primary).Render("▌")
+		filterBar := lipgloss.JoinHorizontal(lipgloss.Left,
+			BadgeInfoStyle.Render("FILTER"),
+			"  ",
+			InputFocusedStyle.Render(m.filterQuery+cursor),
+		)
+		parts = append(parts, filterBar, "")
+	}
+
+	parts = append(parts, m.browserTable.View())
 
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
 func (m *Model) viewComposer() string {
-	if m.isProcessing {
-		return ""
-	}
-
-	if !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
-		return SuccessStyle.Render("✅ Done! Your post is live.") + "\n\n" +
-			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
-	}
-
 	header := H2Style.Render("Compose New Post")
 
 	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
@@ -63,21 +63,12 @@ func (m *Model) viewComposer() string {
 		),
 	)
 
-	helpText := BodyTertiaryStyle.Render(
-		"Actions:\n" +
-			"• Enter: Schedule/Post Now\n" +
-			"• d:     Save as Draft\n" +
-			"• q:     Cancel",
-	)
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		fileCountBadge,
 		"",
 		inputCard,
-		"",
-		helpText,
 	)
 }
 
@@ -111,15 +102,11 @@ func (m *Model) viewDashboard() string {
 		),
 	)
 
-	helpText := BodyTertiaryStyle.Render("Press 'q' to return to menu")
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		quotaCard,
 		tunnelCard,
-		"",
-		helpText,
 	)
 }
 
@@ -139,7 +126,11 @@ func (m *Model) viewFooter() string {
 	}
 
 	if m.statusMsg != "" {
-		elements = append(elements, SuccessStyle.Render(m.statusMsg))
+		msgStyle := SuccessStyle
+		if strings.HasPrefix(m.statusMsg, "Error") {
+			msgStyle = ErrorStyle
+		}
+		elements = append(elements, msgStyle.Render(m.statusMsg))
 	}
 
 	if m.currentView != MenuView && m.currentView != SettingsView {
@@ -155,8 +146,12 @@ func (m *Model) viewFooter() string {
 			km = AuthKeyMap{KeyMap: Keys}
 		case SettingsDirView:
 			km = SettingsDirKeyMap{KeyMap: Keys}
+		case SettingsNgrokView:
+			km = NgrokKeyMap{KeyMap: Keys}
 		case DashboardView:
-			km = SettingsDirKeyMap{KeyMap: Keys}
+			km = DashboardKeyMap{KeyMap: Keys}
+		case SchedulerView:
+			km = DashboardKeyMap{KeyMap: Keys}
 		}
 
 		if km != nil {
@@ -180,9 +175,8 @@ func (m *Model) viewSettingsDir() string {
 
 	helpCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
-			BodyStyle.Render("Navigation: Enter to open folder"),
-			BodyStyle.Render("Selection:  Press 's' to select THE CURRENT folder"),
-			BodyTertiaryStyle.Render("Esc/q: Back to settings"),
+			BodyStyle.Render("Enter: open folder"),
+			BodyStyle.Render("s:     select current folder as root"),
 		),
 	)
 
@@ -247,21 +241,12 @@ func (m *Model) viewSettingsAuth() string {
 		rows = append(rows, row)
 	}
 
-	var helpText string
-	if m.authEditing {
-		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • shift+tab: toggle visibility • q: cancel")
-	} else {
-		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: edit • shift+tab: toggle visibility • q: back")
-	}
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		infoCard,
 		"",
 		strings.Join(rows, "\n"),
-		"",
-		helpText,
 	)
 }
 
@@ -347,15 +332,11 @@ func (m *Model) viewSettingsNgrok() string {
 		rows = append(rows, row)
 	}
 
-	helpText := BodyTertiaryStyle.Render("tab: switch • enter: save • shift+tab: toggle visibility • esc: back")
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		infoCard,
 		"",
 		strings.Join(rows, "\n"),
-		"",
-		helpText,
 	)
 }

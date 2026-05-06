@@ -158,3 +158,25 @@ func (k AuthKeyMap) ShortHelp() []key.Binding {
 func (k AuthKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
 }
+
+// NgrokKeyMap for ngrok configuration.
+type NgrokKeyMap struct{ KeyMap }
+
+func (k NgrokKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.ShiftTab, k.Enter, k.Back}
+}
+
+func (k NgrokKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
+}
+
+// DashboardKeyMap for the dashboard view.
+type DashboardKeyMap struct{ KeyMap }
+
+func (k DashboardKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Back}
+}
+
+func (k DashboardKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Back}}
+}

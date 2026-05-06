@@ -45,12 +45,18 @@ func (m *Model) handleWindowSize(msg tea.WindowSizeMsg) {
 
 	manualFooterHeight := 4
 	m.table.SetHeight(msg.Height - v - manualFooterHeight - 4)
+
+	browserHeight := msg.Height - v - 18
+	if browserHeight < 5 {
+		browserHeight = 5
+	}
+	m.browserTable.SetHeight(browserHeight)
 }
 
 func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) {
-	m.caption = m.input.Value()
+	caption := m.input.Value()
 
-	if len(m.caption) > 2200 {
+	if len(caption) > 2200 {
 		m.statusMsg = "Error: Caption exceeds 2200 character limit"
 		return
 	}
@@ -60,7 +66,7 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 		return
 	}
 
-	_, err := m.db.SavePost(m.caption, m.selectedMedia, scheduleTime, status)
+	_, err := m.db.SavePost(caption, m.selectedMedia, scheduleTime, status)
 	if err != nil {
 		m.statusMsg = "Error saving post: " + err.Error()
 	} else {

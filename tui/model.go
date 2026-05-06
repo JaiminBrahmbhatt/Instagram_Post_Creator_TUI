@@ -22,7 +22,6 @@ type Model struct {
 	ngrokFocusIndex  int
 	browserDir       string
 	browserTable     table.Model
-	caption          string
 	client           *api.Client
 	currentView      ViewState
 	db               *db.Database
