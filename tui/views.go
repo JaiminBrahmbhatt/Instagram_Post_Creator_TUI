@@ -11,6 +11,56 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func (m *Model) viewAIGroup() string {
+	header := H2Style.Render("AI Photo Groups")
+
+	if len(m.aiGroups) == 0 {
+		return lipgloss.JoinVertical(lipgloss.Left, header, "",
+			BodySecondaryStyle.Render("No groups found. Try with more varied photos or check your ANTHROPIC_API_KEY."))
+	}
+
+	// Group list with selection indicator
+	var rows []string
+	for i, g := range m.aiGroups {
+		indicator := "  "
+		nameStyle := BodyStyle
+		if i == m.aiGroupIndex {
+			indicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+			nameStyle = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
+		}
+		badge := BadgeInfoStyle.Render(fmt.Sprintf("%d photos", len(g.Photos)))
+		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Left,
+			indicator, nameStyle.Render(g.Name), "  ", badge))
+	}
+
+	// Detail card for selected group
+	sel := m.aiGroups[m.aiGroupIndex]
+	var names []string
+	for _, p := range sel.Photos {
+		names = append(names, "  "+filepath.Base(p))
+	}
+	detailCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			CardHeaderStyle.Render(sel.Name),
+			BodyTertiaryStyle.Render(sel.Reason),
+			"",
+			BodySecondaryStyle.Render(strings.Join(names, "\n")),
+		),
+	)
+
+	limitNote := ""
+	if len(m.aiGroups) > 0 && len(m.aiGroups[0].Photos) > 0 {
+		limitNote = BodyTertiaryStyle.Render(fmt.Sprintf("Analyzed up to %d photos — press Enter to compose with selected group", api.MaxPhotosPerBatch))
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header, "",
+		strings.Join(rows, "\n"), "",
+		detailCard, "",
+		limitNote,
+	)
+}
+
 func (m *Model) viewBrowser() string {
 	header := H2Style.Render("Media Browser")
 
@@ -152,6 +202,8 @@ func (m *Model) viewFooter() string {
 			km = DashboardKeyMap{KeyMap: Keys}
 		case SchedulerView:
 			km = DashboardKeyMap{KeyMap: Keys}
+		case AIGroupView:
+			km = AIGroupKeyMap{KeyMap: Keys}
 		}
 
 		if km != nil {

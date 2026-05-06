@@ -38,6 +38,7 @@ func NewMenu() list.Model {
 		item{title: MenuTitleDashboard, desc: "View limits and engagement"},
 		item{title: MenuTitleMediaBrowser, desc: "Select photos for carousel"},
 		item{title: MenuTitleScheduledPosts, desc: "Manage your queue"},
+		item{title: MenuTitleAIGroup, desc: "Let Claude group similar photos automatically"},
 		item{title: MenuTitleSettings, desc: "Configure app settings"},
 	}
 

@@ -54,6 +54,9 @@ func (m *Model) renderBreadcrumb() string {
 	case SetupView:
 		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
 		parts = append(parts, BreadcrumbActiveStyle.Render("Setup"))
+	case AIGroupView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("AI Groups"))
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
@@ -134,6 +137,8 @@ func (m *Model) renderCurrentView() string {
 		return m.settingsList.View()
 	case SetupView:
 		return m.viewSetup()
+	case AIGroupView:
+		return m.viewAIGroup()
 	default:
 		return ""
 	}

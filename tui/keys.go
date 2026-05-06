@@ -159,6 +159,17 @@ func (k AuthKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
 }
 
+// AIGroupKeyMap for the AI photo grouping view.
+type AIGroupKeyMap struct{ KeyMap }
+
+func (k AIGroupKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Up, k.Down, k.Enter, k.Back}
+}
+
+func (k AIGroupKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Up, k.Down}, {k.Enter, k.Back}}
+}
+
 // NgrokKeyMap for ngrok configuration.
 type NgrokKeyMap struct{ KeyMap }
 

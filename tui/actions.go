@@ -1,8 +1,13 @@
 package tui
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/db"
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -82,6 +87,32 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 		}
 	}
 	m.currentView = MenuView
+}
+
+// groupPhotosCmd scans photosDir for images and asks Claude to cluster them.
+func groupPhotosCmd(photosDir string) tea.Cmd {
+	return func() tea.Msg {
+		entries, err := os.ReadDir(photosDir)
+		if err != nil {
+			return aiGroupMsg{err: fmt.Errorf("reading directory: %w", err)}
+		}
+		var paths []string
+		for _, e := range entries {
+			if e.IsDir() {
+				continue
+			}
+			switch strings.ToLower(filepath.Ext(e.Name())) {
+			case ".jpg", ".jpeg", ".png", ".gif":
+				paths = append(paths, filepath.Join(photosDir, e.Name()))
+			}
+		}
+		if len(paths) == 0 {
+			return aiGroupMsg{err: fmt.Errorf("no image files found in %s", photosDir)}
+		}
+		client := api.NewClaudeClient()
+		groups, err := client.GroupPhotos(paths)
+		return aiGroupMsg{groups: groups, err: err}
+	}
 }
 
 func (m *Model) updatePhotoDir(path string) {

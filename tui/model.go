@@ -59,6 +59,10 @@ type Model struct {
 	filterQuery string
 	sortMode    SortMode
 
+	// AI grouping state
+	aiGroups     []api.PhotoGroup
+	aiGroupIndex int
+
 	authFieldVisible  []bool
 	ngrokFieldVisible []bool
 }
@@ -87,6 +91,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, watchLogsCmd(m.logSub)
 	case quotaMsg:
 		m.handleQuotaMsg(msg)
+		return m, nil
+	case aiGroupMsg:
+		m.isProcessing = false
+		if msg.err != nil {
+			m.showSuccess = true
+			m.lastResult = "❌ " + msg.err.Error()
+		} else if len(msg.groups) == 0 {
+			m.showSuccess = true
+			m.lastResult = "No distinct groups found — try with more varied photos."
+		} else {
+			m.aiGroups = msg.groups
+			m.aiGroupIndex = 0
+			m.currentView = AIGroupView
+		}
 		return m, nil
 	case tea.WindowSizeMsg:
 		m.handleWindowSize(msg)
@@ -186,6 +204,8 @@ func (m *Model) updateViewLogic(msg tea.Msg) tea.Cmd {
 		return m.updateSettingsView(msg)
 	case SetupView:
 		return m.updateSetupView(msg)
+	case AIGroupView:
+		return m.updateAIGroupView(msg)
 	default:
 		return nil
 	}

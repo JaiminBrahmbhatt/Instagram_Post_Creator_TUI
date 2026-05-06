@@ -15,7 +15,13 @@ func (m *Model) handleBackKey() (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 	}
-	if m.currentView == SettingsDirView || m.currentView == SettingsAuthView {
+	if m.currentView == SettingsDirView || m.currentView == SettingsAuthView || m.currentView == SettingsNgrokView {
+		// Cleanup ngrok inputs when navigating back from ngrok settings.
+		if m.currentView == SettingsNgrokView {
+			m.ngrokInput.Blur()
+			m.domainInput.Blur()
+			m.resetNgrokEchoModes()
+		}
 		m.currentView = SettingsView
 		return m, nil
 	}
@@ -95,6 +101,28 @@ func (m *Model) updateComposerView(msg tea.Msg) tea.Cmd {
 	return cmd
 }
 
+func (m *Model) updateAIGroupView(msg tea.Msg) tea.Cmd {
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		switch {
+		case key.Matches(keyMsg, Keys.Up):
+			if m.aiGroupIndex > 0 {
+				m.aiGroupIndex--
+			}
+		case key.Matches(keyMsg, Keys.Down):
+			if m.aiGroupIndex < len(m.aiGroups)-1 {
+				m.aiGroupIndex++
+			}
+		case key.Matches(keyMsg, Keys.Enter):
+			if len(m.aiGroups) > 0 {
+				m.selectedMedia = m.aiGroups[m.aiGroupIndex].Photos
+				m.currentView = ComposerView
+				m.input.Focus()
+			}
+		}
+	}
+	return nil
+}
+
 func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
@@ -131,6 +159,14 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 		case MenuTitleScheduledPosts:
 			m.refreshTable()
 			m.currentView = SchedulerView
+		case MenuTitleAIGroup:
+			if m.photosDir == "" {
+				m.statusMsg = "Error: No photos directory set — go to Settings first."
+				return nil
+			}
+			m.isProcessing = true
+			m.currentStatus = "Analyzing photos with Claude AI..."
+			return groupPhotosCmd(m.photosDir)
 		case MenuTitleSettings:
 			m.currentView = SettingsView
 		}

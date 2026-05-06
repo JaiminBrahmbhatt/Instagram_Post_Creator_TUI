@@ -13,8 +13,8 @@ func TestNewMenu(t *testing.T) {
 	}
 	
 	// Verify delegate is set (implicit by looking at behavior, but we can check items)
-	if len(l.Items()) != 4 {
-		t.Errorf("Expected 4 menu items, got %d", len(l.Items()))
+	if len(l.Items()) != 5 {
+		t.Errorf("Expected 5 menu items, got %d", len(l.Items()))
 	}
 }
 
