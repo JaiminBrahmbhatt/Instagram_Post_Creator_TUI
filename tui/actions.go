@@ -70,6 +70,10 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 		m.statusMsg = "Error: No media selected"
 		return
 	}
+	if len(m.selectedMedia) > api.CarouselMaxPhotos {
+		m.statusMsg = fmt.Sprintf("Error: Instagram allows at most %d photos per carousel", api.CarouselMaxPhotos)
+		return
+	}
 
 	_, err := m.db.SavePost(caption, m.selectedMedia, scheduleTime, status)
 	if err != nil {
@@ -115,14 +119,31 @@ func groupPhotosCmd(photosDir string) tea.Cmd {
 	}
 }
 
-func (m *Model) updatePhotoDir(path string) {
+// normalizeDirPath accepts a local path or a file:// URI and returns an
+// absolute local path.
+func normalizeDirPath(path string) string {
+	path = strings.TrimPrefix(path, "file://")
+	if !filepath.IsAbs(path) {
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+	}
+	return path
+}
+
+// updatePhotoDir saves the new photos directory, resets the image count
+// baseline, and returns a poll command to start watching for changes.
+func (m *Model) updatePhotoDir(path string) tea.Cmd {
+	path = normalizeDirPath(path)
 	m.photosDir = path
 	m.browserDir = path
 	m.db.SetSetting("photos_dir", path)
+	m.lastImageCount = countImagesInDir(path)
 	if m.currentView == SetupView {
 		m.setupStep = 1
-	} else {
-		m.currentView = SettingsView
-		m.statusMsg = "Photo directory updated!"
+		return pollPhotoDirCmd(path)
 	}
+	m.currentView = SettingsView
+	m.statusMsg = "Photo directory updated!"
+	return pollPhotoDirCmd(path)
 }

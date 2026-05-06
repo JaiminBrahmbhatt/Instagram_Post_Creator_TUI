@@ -313,6 +313,9 @@ func (s *Server) toolCreatePost(raw json.RawMessage) (interface{}, error) {
 	if len(args.PhotoPaths) == 0 {
 		return nil, fmt.Errorf("photo_paths must not be empty")
 	}
+	if len(args.PhotoPaths) > api.CarouselMaxPhotos {
+		return nil, fmt.Errorf("Instagram allows at most %d photos per carousel (got %d)", api.CarouselMaxPhotos, len(args.PhotoPaths))
+	}
 	if len(args.Caption) > 2200 {
 		return nil, fmt.Errorf("caption exceeds 2200 character limit")
 	}

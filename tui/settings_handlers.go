@@ -19,9 +19,8 @@ func (m *Model) updateSettingsDirView(msg tea.Msg) tea.Cmd {
 		if key.Matches(keyMsg, Keys.Enter) {
 			m.enterBrowserDirectory()
 		} else if key.Matches(keyMsg, Keys.Select) {
-			// Select current folder
 			absPath, _ := filepath.Abs(m.browserDir)
-			m.updatePhotoDir(absPath)
+			return m.updatePhotoDir(absPath)
 		}
 	}
 	return cmd

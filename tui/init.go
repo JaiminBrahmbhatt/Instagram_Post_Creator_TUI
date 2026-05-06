@@ -55,8 +55,13 @@ func InitialModel(database *db.Database, client *api.Client, reportChan chan str
 }
 
 func (m *Model) Init() tea.Cmd {
-	return tea.Batch(
+	cmds := []tea.Cmd{
 		m.spinner.Tick,
 		watchLogsCmd(m.logSub),
-	)
+	}
+	if m.photosDir != "" {
+		m.lastImageCount = countImagesInDir(m.photosDir)
+		cmds = append(cmds, pollPhotoDirCmd(m.photosDir))
+	}
+	return tea.Batch(cmds...)
 }

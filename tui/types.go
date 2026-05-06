@@ -64,3 +64,8 @@ type aiGroupMsg struct {
 	groups []api.PhotoGroup
 	err    error
 }
+
+// photosDirPollMsg is emitted by pollPhotoDirCmd with the latest image count.
+type photosDirPollMsg struct {
+	imageCount int
+}

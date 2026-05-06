@@ -18,6 +18,10 @@ const (
 	anthropicModel  = "claude-opus-4-7"
 	// MaxPhotosPerBatch is the maximum number of images sent to Claude per analysis call.
 	MaxPhotosPerBatch = 20
+	// CarouselMaxPhotos is Instagram's hard limit for carousel posts.
+	CarouselMaxPhotos = 10
+	// CarouselMinPhotos is the minimum photos required for a carousel group.
+	CarouselMinPhotos = 2
 )
 
 var anthropicHTTPClient = &http.Client{Timeout: 120 * time.Second}
@@ -98,12 +102,14 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 		"I've shared %d photos. Group them into Instagram carousel posts based on "+
 			"visual similarity, location, event, or story cohesion.\n\n"+
 			"Rules:\n"+
-			"- Each group must have 2–10 photos that work well together as a carousel\n"+
+			"- Each group must have %d–%d photos (Instagram carousel hard limits)\n"+
 			"- A photo can appear in only one group\n"+
-			"- Skip photos that don't fit with any others\n\n"+
+			"- Skip photos that don't fit cleanly with any others\n"+
+			"- Never put more than %d photos in a single group\n\n"+
 			"Respond with ONLY valid JSON, no explanation before or after:\n"+
 			`{"groups":[{"name":"short title","reason":"why these go together","indices":[0,1]}]}`,
 		len(content),
+		CarouselMinPhotos, CarouselMaxPhotos, CarouselMaxPhotos,
 	)
 	content = append(content, contentBlock{Type: "text", Text: prompt})
 
@@ -183,7 +189,11 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 				paths = append(paths, batch[idx])
 			}
 		}
-		if len(paths) >= 2 {
+		// Enforce Instagram carousel limits strictly.
+		if len(paths) > CarouselMaxPhotos {
+			paths = paths[:CarouselMaxPhotos]
+		}
+		if len(paths) >= CarouselMinPhotos {
 			groups = append(groups, PhotoGroup{
 				Name:   g.Name,
 				Reason: g.Reason,
