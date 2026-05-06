@@ -60,9 +60,15 @@ type Model struct {
 	sortMode    SortMode
 
 	// AI grouping state
-	aiGroups      []api.PhotoGroup
-	aiGroupIndex  int
+	aiGroups       []api.PhotoGroup
+	aiGroupIndex   int
 	lastImageCount int // baseline for directory change detection
+
+	// Grouping settings view state
+	groupingBackend    string
+	groupingFocusIndex int
+	groupingModelInput textinput.Model
+	groupingURLInput   textinput.Model
 
 	authFieldVisible  []bool
 	ngrokFieldVisible []bool
@@ -199,8 +205,9 @@ func (m *Model) handlePhotoDirPoll(msg photosDirPollMsg) (tea.Model, tea.Cmd) {
 		added := msg.imageCount - prev
 		if m.currentView == MenuView {
 			m.isProcessing = true
-			m.currentStatus = fmt.Sprintf("Detected %d new photo(s) — grouping with Claude...", added)
-			return m, tea.Batch(nextPoll, groupPhotosCmd(m.photosDir))
+			backend := m.resolveGroupingBackend()
+			m.currentStatus = fmt.Sprintf("Detected %d new photo(s) — grouping with %s...", added, backend.DisplayName())
+			return m, tea.Batch(nextPoll, groupPhotosCmd(m.photosDir, backend))
 		}
 		// User is busy elsewhere — surface a gentle notification.
 		m.statusMsg = fmt.Sprintf("✨ %d new photo(s) detected — go to 'AI Group Photos' to group them", added)
@@ -232,6 +239,8 @@ func (m *Model) updateViewLogic(msg tea.Msg) tea.Cmd {
 		return m.updateSetupView(msg)
 	case AIGroupView:
 		return m.updateAIGroupView(msg)
+	case SettingsGroupingView:
+		return m.updateSettingsGroupingView(msg)
 	default:
 		return nil
 	}

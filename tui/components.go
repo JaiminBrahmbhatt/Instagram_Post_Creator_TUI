@@ -80,6 +80,7 @@ func NewSettingsList() list.Model {
 		item{title: SettingsTitleCleanup, desc: "Toggle 30-day post cleanup"},
 		item{title: SettingsTitleNgrok, desc: "Manage Ngrok Auth Token"},
 		item{title: SettingsTitleEnv, desc: "Update API Keys and Dry Run Mode"},
+		item{title: SettingsTitleGrouping, desc: "Claude or Ollama — pick your grouping AI"},
 	}
 	l := list.New(items, NewCustomDelegate(), 0, 0)
 	l.Title = "Settings"
@@ -152,6 +153,30 @@ func NewDomainInput() textinput.Model {
 	ti.Placeholder = "e.g. your-domain.ngrok-free.app (Optional)"
 	ti.CharLimit = 128
 	ti.Width = 50
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func newGroupingModelInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "e.g. claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001"
+	ti.CharLimit = 128
+	ti.Width = 55
+	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
+	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
+	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)
+	ti.PlaceholderStyle = lipgloss.NewStyle().Foreground(Theme.TextSecondary)
+	return ti
+}
+
+func newGroupingURLInput() textinput.Model {
+	ti := textinput.New()
+	ti.Placeholder = "http://localhost:11434"
+	ti.CharLimit = 256
+	ti.Width = 55
 	ti.Cursor.Style = lipgloss.NewStyle().Foreground(Theme.PrimaryBright)
 	ti.PromptStyle = lipgloss.NewStyle().Foreground(Theme.Primary)
 	ti.TextStyle = lipgloss.NewStyle().Foreground(Theme.TextPrimary)

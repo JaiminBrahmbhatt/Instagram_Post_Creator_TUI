@@ -191,3 +191,14 @@ func (k DashboardKeyMap) ShortHelp() []key.Binding {
 func (k DashboardKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{{k.Back}}
 }
+
+// GroupingKeyMap for the AI grouping backend settings screen.
+type GroupingKeyMap struct{ KeyMap }
+
+func (k GroupingKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Left, k.Tab, k.Enter, k.Back}
+}
+
+func (k GroupingKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Left, k.Right, k.Up, k.Down}, {k.Tab, k.Enter, k.Back}}
+}

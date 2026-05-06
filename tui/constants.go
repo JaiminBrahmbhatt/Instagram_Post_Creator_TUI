@@ -12,4 +12,5 @@ const (
 	SettingsTitleCleanup   = "Auto Cleanup"
 	SettingsTitleNgrok     = "Ngrok Configuration"
 	SettingsTitleEnv       = "Environment Configuration"
+	SettingsTitleGrouping  = "AI Grouping Backend"
 )

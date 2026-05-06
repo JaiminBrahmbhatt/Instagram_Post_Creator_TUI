@@ -204,6 +204,8 @@ func (m *Model) viewFooter() string {
 			km = DashboardKeyMap{KeyMap: Keys}
 		case AIGroupView:
 			km = AIGroupKeyMap{KeyMap: Keys}
+		case SettingsGroupingView:
+			km = GroupingKeyMap{KeyMap: Keys}
 		}
 
 		if km != nil {
@@ -327,6 +329,90 @@ func (m *Model) viewSetup() string {
 		header,
 		"",
 		questionCard,
+	)
+}
+
+func (m *Model) viewSettingsGrouping() string {
+	header := H2Style.Render("AI Grouping Backend")
+
+	infoCard := InfoBoxStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			BodySecondaryStyle.Render("Choose the AI backend used to cluster photos into carousel groups."),
+			BodySecondaryStyle.Render("Use ←/→ to switch backend, ↑/↓ or Tab to navigate fields, Enter to save."),
+		),
+	)
+
+	// Backend toggle row
+	backendFocused := m.groupingFocusIndex == 0
+	backendIndicator := "  "
+	if backendFocused {
+		backendIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+	}
+	backendLabelStyle := InputLabelStyle
+	if backendFocused {
+		backendLabelStyle = InputLabelFocusedStyle
+	}
+
+	var backendValue string
+	if m.groupingBackend == "ollama" {
+		backendValue = "◄ Ollama ►"
+	} else {
+		backendValue = "◄ Claude ►"
+	}
+	backendValueStyle := lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
+
+	backendRow := lipgloss.JoinHorizontal(lipgloss.Left,
+		backendIndicator,
+		backendLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Backend")),
+		" ",
+		backendValueStyle.Render(backendValue),
+	)
+
+	// Model input row
+	modelFocused := m.groupingFocusIndex == 1
+	modelIndicator := "  "
+	if modelFocused {
+		modelIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+	}
+	modelLabelStyle := InputLabelStyle
+	if modelFocused {
+		modelLabelStyle = InputLabelFocusedStyle
+	}
+	modelRow := lipgloss.JoinHorizontal(lipgloss.Left,
+		modelIndicator,
+		modelLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Model")),
+		" ",
+		m.groupingModelInput.View(),
+	)
+
+	rows := []string{backendRow, modelRow}
+
+	// Ollama URL row — only shown for Ollama backend
+	if m.groupingBackend == "ollama" {
+		urlFocused := m.groupingFocusIndex == 2
+		urlIndicator := "  "
+		if urlFocused {
+			urlIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+		}
+		urlLabelStyle := InputLabelStyle
+		if urlFocused {
+			urlLabelStyle = InputLabelFocusedStyle
+		}
+		urlRow := lipgloss.JoinHorizontal(lipgloss.Left,
+			urlIndicator,
+			urlLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Ollama URL")),
+			" ",
+			m.groupingURLInput.View(),
+		)
+		rows = append(rows, urlRow)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		"",
+		infoCard,
+		"",
+		strings.Join(rows, "\n"),
 	)
 }
 

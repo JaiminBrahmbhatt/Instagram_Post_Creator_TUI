@@ -93,8 +93,8 @@ func (m *Model) savePost(status db.PostStatus, scheduleTime, successMsg string) 
 	m.currentView = MenuView
 }
 
-// groupPhotosCmd scans photosDir for images and asks Claude to cluster them.
-func groupPhotosCmd(photosDir string) tea.Cmd {
+// groupPhotosCmd scans photosDir for images and uses the given backend to cluster them.
+func groupPhotosCmd(photosDir string, backend api.GroupingBackend) tea.Cmd {
 	return func() tea.Msg {
 		entries, err := os.ReadDir(photosDir)
 		if err != nil {
@@ -113,10 +113,18 @@ func groupPhotosCmd(photosDir string) tea.Cmd {
 		if len(paths) == 0 {
 			return aiGroupMsg{err: fmt.Errorf("no image files found in %s", photosDir)}
 		}
-		client := api.NewClaudeClient()
-		groups, err := client.GroupPhotos(paths)
+		groups, err := backend.GroupPhotos(paths)
 		return aiGroupMsg{groups: groups, err: err}
 	}
+}
+
+// resolveGroupingBackend reads grouping settings from the DB and builds the
+// appropriate GroupingBackend.
+func (m *Model) resolveGroupingBackend() api.GroupingBackend {
+	backend, _ := m.db.GetSetting("grouping_backend")
+	model, _ := m.db.GetSetting("grouping_model")
+	ollamaURL, _ := m.db.GetSetting("ollama_base_url")
+	return api.NewGroupingBackend(backend, model, ollamaURL)
 }
 
 // normalizeDirPath accepts a local path or a file:// URI and returns an

@@ -15,7 +15,7 @@ func (m *Model) handleBackKey() (tea.Model, tea.Cmd) {
 		m.quitting = true
 		return m, tea.Quit
 	}
-	if m.currentView == SettingsDirView || m.currentView == SettingsAuthView || m.currentView == SettingsNgrokView {
+	if m.currentView == SettingsDirView || m.currentView == SettingsAuthView || m.currentView == SettingsNgrokView || m.currentView == SettingsGroupingView {
 		// Cleanup ngrok inputs when navigating back from ngrok settings.
 		if m.currentView == SettingsNgrokView {
 			m.ngrokInput.Blur()
@@ -164,9 +164,10 @@ func (m *Model) updateMenuView(msg tea.Msg) tea.Cmd {
 				m.statusMsg = "Error: No photos directory set — go to Settings first."
 				return nil
 			}
+			backend := m.resolveGroupingBackend()
 			m.isProcessing = true
-			m.currentStatus = "Analyzing photos with Claude AI..."
-			return groupPhotosCmd(m.photosDir)
+			m.currentStatus = "Analyzing photos with " + backend.DisplayName() + "..."
+			return groupPhotosCmd(m.photosDir, backend)
 		case MenuTitleSettings:
 			m.currentView = SettingsView
 		}

@@ -13,44 +13,33 @@ import (
 	"time"
 )
 
-const (
-	anthropicAPIURL = "https://api.anthropic.com/v1/messages"
-	anthropicModel  = "claude-opus-4-7"
-	// MaxPhotosPerBatch is the maximum number of images sent to Claude per analysis call.
-	MaxPhotosPerBatch = 20
-	// CarouselMaxPhotos is Instagram's hard limit for carousel posts.
-	CarouselMaxPhotos = 10
-	// CarouselMinPhotos is the minimum photos required for a carousel group.
-	CarouselMinPhotos = 2
-)
+const anthropicAPIURL = "https://api.anthropic.com/v1/messages"
 
 var anthropicHTTPClient = &http.Client{Timeout: 120 * time.Second}
-
-// PhotoGroup is a cluster of image paths that Claude considers thematically similar.
-type PhotoGroup struct {
-	Name   string
-	Reason string
-	Photos []string // absolute file paths
-}
 
 // ClaudeClient calls the Anthropic API for vision-based photo analysis.
 type ClaudeClient struct {
 	APIKey string
+	Model  string
 }
 
-// NewClaudeClient creates a client using the stored Anthropic API key.
+func (c *ClaudeClient) DisplayName() string {
+	return "Claude / " + c.Model
+}
+
+// NewClaudeClient creates a client using the stored Anthropic API key and
+// defaults to the most capable Claude model.
 func NewClaudeClient() *ClaudeClient {
-	return &ClaudeClient{APIKey: GetAnthropicKey()}
+	return &ClaudeClient{APIKey: GetAnthropicKey(), Model: ModelClaudeOpus}
 }
 
-// GroupPhotos sends up to maxPhotosPerBatch images to Claude and returns
+// GroupPhotos sends up to MaxPhotosPerBatch images to Claude and returns
 // suggested groupings for Instagram carousel posts.
 func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 	if c.APIKey == "" {
 		return nil, fmt.Errorf("Anthropic API key not set — add ANTHROPIC_API_KEY to your environment or .env file")
 	}
 
-	// Filter to supported image types only (no video)
 	var imagePaths []string
 	for _, p := range photoPaths {
 		switch strings.ToLower(filepath.Ext(p)) {
@@ -67,7 +56,6 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 		batch = batch[:MaxPhotosPerBatch]
 	}
 
-	// Build content blocks: one image block per file, then a text prompt.
 	type imageSource struct {
 		Type      string `json:"type"`
 		MediaType string `json:"media_type"`
@@ -80,6 +68,7 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 	}
 
 	var content []contentBlock
+	var validBatch []string
 	for _, path := range batch {
 		data, err := os.ReadFile(path)
 		if err != nil {
@@ -93,28 +82,21 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 				Data:      base64.StdEncoding.EncodeToString(data),
 			},
 		})
+		validBatch = append(validBatch, path)
 	}
 	if len(content) == 0 {
 		return nil, fmt.Errorf("could not read any image files")
 	}
 
-	prompt := fmt.Sprintf(
-		"I've shared %d photos. Group them into Instagram carousel posts based on "+
-			"visual similarity, location, event, or story cohesion.\n\n"+
-			"Rules:\n"+
-			"- Each group must have %d–%d photos (Instagram carousel hard limits)\n"+
-			"- A photo can appear in only one group\n"+
-			"- Skip photos that don't fit cleanly with any others\n"+
-			"- Never put more than %d photos in a single group\n\n"+
-			"Respond with ONLY valid JSON, no explanation before or after:\n"+
-			`{"groups":[{"name":"short title","reason":"why these go together","indices":[0,1]}]}`,
-		len(content),
-		CarouselMinPhotos, CarouselMaxPhotos, CarouselMaxPhotos,
-	)
-	content = append(content, contentBlock{Type: "text", Text: prompt})
+	content = append(content, contentBlock{Type: "text", Text: buildGroupingPrompt(len(content))})
+
+	model := c.Model
+	if model == "" {
+		model = ModelClaudeOpus
+	}
 
 	reqBody, err := json.Marshal(map[string]interface{}{
-		"model":      anthropicModel,
+		"model":      model,
 		"max_tokens": 1024,
 		"messages": []map[string]interface{}{
 			{"role": "user", "content": content},
@@ -162,46 +144,7 @@ func (c *ClaudeClient) GroupPhotos(photoPaths []string) ([]PhotoGroup, error) {
 		return nil, fmt.Errorf("empty response from Claude")
 	}
 
-	// Extract JSON from the response text (Claude may add a tiny preamble).
-	text := apiResp.Content[0].Text
-	start := strings.Index(text, "{")
-	end := strings.LastIndex(text, "}")
-	if start == -1 || end < start {
-		return nil, fmt.Errorf("no JSON found in Claude response")
-	}
-
-	var result struct {
-		Groups []struct {
-			Name    string `json:"name"`
-			Reason  string `json:"reason"`
-			Indices []int  `json:"indices"`
-		} `json:"groups"`
-	}
-	if err := json.Unmarshal([]byte(text[start:end+1]), &result); err != nil {
-		return nil, fmt.Errorf("parsing grouping JSON: %w", err)
-	}
-
-	var groups []PhotoGroup
-	for _, g := range result.Groups {
-		var paths []string
-		for _, idx := range g.Indices {
-			if idx >= 0 && idx < len(batch) {
-				paths = append(paths, batch[idx])
-			}
-		}
-		// Enforce Instagram carousel limits strictly.
-		if len(paths) > CarouselMaxPhotos {
-			paths = paths[:CarouselMaxPhotos]
-		}
-		if len(paths) >= CarouselMinPhotos {
-			groups = append(groups, PhotoGroup{
-				Name:   g.Name,
-				Reason: g.Reason,
-				Photos: paths,
-			})
-		}
-	}
-	return groups, nil
+	return parseGroupingResponse(apiResp.Content[0].Text, validBatch)
 }
 
 func extToMediaType(ext string) string {

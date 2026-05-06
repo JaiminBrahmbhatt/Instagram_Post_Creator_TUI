@@ -20,6 +20,7 @@ const (
 	SettingsNgrokView
 	ComposerView
 	AIGroupView
+	SettingsGroupingView
 )
 
 // List Item
