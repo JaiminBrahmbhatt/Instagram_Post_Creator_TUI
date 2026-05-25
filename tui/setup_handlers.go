@@ -33,7 +33,7 @@ func (m *Model) updateSetupView(msg tea.Msg) tea.Cmd {
 			m.enterBrowserDirectory()
 		case key.Matches(keyMsg, Keys.Select):
 			absPath, _ := filepath.Abs(m.browserDir)
-			m.updatePhotoDir(absPath)
+			return m.updatePhotoDir(absPath)
 		case key.Matches(keyMsg, Keys.Left):
 			m.parentDirectory()
 		}

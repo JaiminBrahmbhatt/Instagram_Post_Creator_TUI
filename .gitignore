@@ -6,5 +6,7 @@
 /photos
 /post-creator
 debug.log
+mcp-debug.log
 main
+/post-creator-mcp
 post_creator.db

@@ -22,7 +22,6 @@ type Model struct {
 	ngrokFocusIndex  int
 	browserDir       string
 	browserTable     table.Model
-	caption          string
 	client           *api.Client
 	currentView      ViewState
 	db               *db.Database
@@ -60,6 +59,17 @@ type Model struct {
 	filterQuery string
 	sortMode    SortMode
 
+	// AI grouping state
+	aiGroups       []api.PhotoGroup
+	aiGroupIndex   int
+	lastImageCount int // baseline for directory change detection
+
+	// Grouping settings view state
+	groupingBackend    string
+	groupingFocusIndex int
+	groupingModelInput textinput.Model
+	groupingURLInput   textinput.Model
+
 	authFieldVisible  []bool
 	ngrokFieldVisible []bool
 }
@@ -89,6 +99,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case quotaMsg:
 		m.handleQuotaMsg(msg)
 		return m, nil
+	case aiGroupMsg:
+		m.isProcessing = false
+		if msg.err != nil {
+			m.showSuccess = true
+			m.lastResult = "❌ " + msg.err.Error()
+		} else if len(msg.groups) == 0 {
+			m.showSuccess = true
+			m.lastResult = "No distinct groups found — try with more varied photos."
+		} else {
+			m.aiGroups = msg.groups
+			m.aiGroupIndex = 0
+			m.currentView = AIGroupView
+		}
+		return m, nil
+	case photosDirPollMsg:
+		return m.handlePhotoDirPoll(msg)
 	case tea.WindowSizeMsg:
 		m.handleWindowSize(msg)
 		return m, nil
@@ -165,6 +191,30 @@ func (m *Model) handleQuotaMsg(msg quotaMsg) {
 	}
 }
 
+func (m *Model) handlePhotoDirPoll(msg photosDirPollMsg) (tea.Model, tea.Cmd) {
+	prev := m.lastImageCount
+	m.lastImageCount = msg.imageCount
+
+	var nextPoll tea.Cmd
+	if m.photosDir != "" {
+		nextPoll = pollPhotoDirCmd(m.photosDir)
+	}
+
+	// Trigger only when count strictly increases (photos added, not removed/error).
+	if msg.imageCount > prev && prev >= 0 && !m.isProcessing {
+		added := msg.imageCount - prev
+		if m.currentView == MenuView {
+			m.isProcessing = true
+			backend := m.resolveGroupingBackend()
+			m.currentStatus = fmt.Sprintf("Detected %d new photo(s) — grouping with %s...", added, backend.DisplayName())
+			return m, tea.Batch(nextPoll, groupPhotosCmd(m.photosDir, backend))
+		}
+		// User is busy elsewhere — surface a gentle notification.
+		m.statusMsg = fmt.Sprintf("✨ %d new photo(s) detected — go to 'AI Group Photos' to group them", added)
+	}
+	return m, nextPoll
+}
+
 func (m *Model) updateViewLogic(msg tea.Msg) tea.Cmd {
 	switch m.currentView {
 	case BrowserView:
@@ -187,6 +237,10 @@ func (m *Model) updateViewLogic(msg tea.Msg) tea.Cmd {
 		return m.updateSettingsView(msg)
 	case SetupView:
 		return m.updateSetupView(msg)
+	case AIGroupView:
+		return m.updateAIGroupView(msg)
+	case SettingsGroupingView:
+		return m.updateSettingsGroupingView(msg)
 	default:
 		return nil
 	}

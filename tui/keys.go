@@ -158,3 +158,47 @@ func (k AuthKeyMap) ShortHelp() []key.Binding {
 func (k AuthKeyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
 }
+
+// AIGroupKeyMap for the AI photo grouping view.
+type AIGroupKeyMap struct{ KeyMap }
+
+func (k AIGroupKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Up, k.Down, k.Enter, k.Back}
+}
+
+func (k AIGroupKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Up, k.Down}, {k.Enter, k.Back}}
+}
+
+// NgrokKeyMap for ngrok configuration.
+type NgrokKeyMap struct{ KeyMap }
+
+func (k NgrokKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Tab, k.ShiftTab, k.Enter, k.Back}
+}
+
+func (k NgrokKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Tab, k.ShiftTab}, {k.Enter, k.Back}}
+}
+
+// DashboardKeyMap for the dashboard view.
+type DashboardKeyMap struct{ KeyMap }
+
+func (k DashboardKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Back}
+}
+
+func (k DashboardKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Back}}
+}
+
+// GroupingKeyMap for the AI grouping backend settings screen.
+type GroupingKeyMap struct{ KeyMap }
+
+func (k GroupingKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.Left, k.Tab, k.Enter, k.Back}
+}
+
+func (k GroupingKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.Left, k.Right, k.Up, k.Down}, {k.Tab, k.Enter, k.Back}}
+}

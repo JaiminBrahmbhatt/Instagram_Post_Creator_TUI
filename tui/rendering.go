@@ -8,8 +8,9 @@ import (
 
 func (m *Model) renderAppShell(content string) string {
 	header := AppHeaderStyle.Width(m.width).Render("Instagram Auto-Post")
+	breadcrumb := m.renderBreadcrumb()
 	return AppContainerStyle.Render(
-		lipgloss.JoinVertical(lipgloss.Left, header, content),
+		lipgloss.JoinVertical(lipgloss.Left, header, breadcrumb, content),
 	)
 }
 
@@ -53,6 +54,14 @@ func (m *Model) renderBreadcrumb() string {
 	case SetupView:
 		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
 		parts = append(parts, BreadcrumbActiveStyle.Render("Setup"))
+	case AIGroupView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("AI Groups"))
+	case SettingsGroupingView:
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbStyle.Render("Settings"))
+		parts = append(parts, BreadcrumbSeparatorStyle.Render(" › "))
+		parts = append(parts, BreadcrumbActiveStyle.Render("AI Grouping"))
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
@@ -73,14 +82,11 @@ func (m *Model) renderProcessingView() string {
 	for _, l := range m.lastLogs {
 		logLines = append(logLines, LogEntryStyle.Render(l))
 	}
-	for len(logLines) < 8 {
-		logLines = append(logLines, "")
-	}
 
 	logMonitor := LogBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
 			LogHeaderStyle.Render("Activity Log"),
-			"\n",
+			"",
 			strings.Join(logLines, "\n"),
 		),
 	)
@@ -95,19 +101,22 @@ func (m *Model) renderProcessingView() string {
 }
 
 func (m *Model) renderSuccessView() string {
+	isError := strings.Contains(m.lastResult, "❌") || strings.Contains(m.lastResult, "Error")
 	icon := "✅"
-	if strings.Contains(m.lastResult, "❌") || strings.Contains(m.lastResult, "Error") {
+	boxStyle := SuccessBoxStyle
+	if isError {
 		icon = "❌"
+		boxStyle = ErrorBoxStyle
 	}
 
-	successCard := SuccessBoxStyle.Render(
+	card := boxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Center,
 			LoadingStyle.Render(icon+"  "+m.lastResult),
 			"\n",
 			BodySecondaryStyle.Render("Press any key to continue"),
 		),
 	)
-	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, successCard)
+	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, card)
 }
 
 func (m *Model) renderCurrentView() string {
@@ -121,9 +130,8 @@ func (m *Model) renderCurrentView() string {
 	case MenuView:
 		return m.list.View()
 	case SchedulerView:
-		header := H2Style.Render("📅 Scheduled Posts & History")
-		helpText := BodyTertiaryStyle.Render("q: back")
-		return lipgloss.JoinVertical(lipgloss.Left, header, "", m.table.View(), "", helpText)
+		header := H2Style.Render("Scheduled Posts & History")
+		return lipgloss.JoinVertical(lipgloss.Left, header, "", m.table.View())
 	case SettingsAuthView:
 		return m.viewSettingsAuth()
 	case SettingsNgrokView:
@@ -134,6 +142,10 @@ func (m *Model) renderCurrentView() string {
 		return m.settingsList.View()
 	case SetupView:
 		return m.viewSetup()
+	case AIGroupView:
+		return m.viewAIGroup()
+	case SettingsGroupingView:
+		return m.viewSettingsGrouping()
 	default:
 		return ""
 	}

@@ -4,6 +4,7 @@ const (
 	MenuTitleDashboard      = "Dashboard"
 	MenuTitleMediaBrowser   = "Media Browser"
 	MenuTitleScheduledPosts = "Scheduled Posts"
+	MenuTitleAIGroup        = "AI Group Photos"
 	MenuTitleSettings       = "Settings"
 
 	// Settings Sub-Menu Items
@@ -11,4 +12,5 @@ const (
 	SettingsTitleCleanup   = "Auto Cleanup"
 	SettingsTitleNgrok     = "Ngrok Configuration"
 	SettingsTitleEnv       = "Environment Configuration"
+	SettingsTitleGrouping  = "AI Grouping Backend"
 )

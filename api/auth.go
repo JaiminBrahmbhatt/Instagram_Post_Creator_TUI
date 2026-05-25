@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	serviceName    = "instagram-post-creator"
-	ngrokTokenKey  = "NGROK_AUTH_TOKEN"
-	ngrokDomainKey = "NGROK_DOMAIN"
+	serviceName        = "instagram-post-creator"
+	ngrokTokenKey      = "NGROK_AUTH_TOKEN"
+	ngrokDomainKey     = "NGROK_DOMAIN"
+	anthropicKeyName   = "ANTHROPIC_API_KEY"
 )
 
 // GetCredential retrieves a credential from the system keyring first,
@@ -53,6 +54,16 @@ func GetNgrokDomain() string {
 // SaveNgrokDomain saves the Ngrok static domain to the keyring.
 func SaveNgrokDomain(domain string) error {
 	return SetCredential(ngrokDomainKey, domain)
+}
+
+// GetAnthropicKey retrieves the Anthropic API key from keyring or environment.
+func GetAnthropicKey() string {
+	return GetCredential(anthropicKeyName)
+}
+
+// SaveAnthropicKey persists the Anthropic API key to the system keyring.
+func SaveAnthropicKey(key string) error {
+	return SetCredential(anthropicKeyName, key)
 }
 
 func syncToKeyring(key, value string) {

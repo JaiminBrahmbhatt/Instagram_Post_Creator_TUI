@@ -1,8 +1,8 @@
 package tui
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/JaiminBrahmbhatt/Instagram_Post_Creator_TUI/api"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 // ViewState definitions
@@ -19,6 +19,8 @@ const (
 	SettingsAuthView
 	SettingsNgrokView
 	ComposerView
+	AIGroupView
+	SettingsGroupingView
 )
 
 // List Item
@@ -57,4 +59,14 @@ func watchLogsCmd(sub chan string) tea.Cmd {
 	return func() tea.Msg {
 		return logMsg(<-sub)
 	}
+}
+
+type aiGroupMsg struct {
+	groups []api.PhotoGroup
+	err    error
+}
+
+// photosDirPollMsg is emitted by pollPhotoDirCmd with the latest image count.
+type photosDirPollMsg struct {
+	imageCount int
 }

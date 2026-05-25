@@ -19,9 +19,8 @@ func (m *Model) updateSettingsDirView(msg tea.Msg) tea.Cmd {
 		if key.Matches(keyMsg, Keys.Enter) {
 			m.enterBrowserDirectory()
 		} else if key.Matches(keyMsg, Keys.Select) {
-			// Select current folder
 			absPath, _ := filepath.Abs(m.browserDir)
-			m.updatePhotoDir(absPath)
+			return m.updatePhotoDir(absPath)
 		}
 	}
 	return cmd
@@ -60,6 +59,25 @@ func (m *Model) updateSettingsView(msg tea.Msg) tea.Cmd {
 			m.domainInput.SetValue(api.GetNgrokDomain())
 			m.ngrokInput.Focus()
 			m.domainInput.Blur()
+		case SettingsTitleGrouping:
+			m.currentView = SettingsGroupingView
+			m.groupingFocusIndex = 0
+			// Load current settings from DB
+			backend, _ := m.db.GetSetting("grouping_backend")
+			if backend == "" {
+				backend = api.BackendClaude
+			}
+			m.groupingBackend = backend
+			model, _ := m.db.GetSetting("grouping_model")
+			m.groupingModelInput.SetValue(model)
+			m.updateGroupingModelPlaceholder()
+			ollamaURL, _ := m.db.GetSetting("ollama_base_url")
+			if ollamaURL == "" {
+				ollamaURL = api.DefaultOllamaURL
+			}
+			m.groupingURLInput.SetValue(ollamaURL)
+			m.groupingModelInput.Blur()
+			m.groupingURLInput.Blur()
 		case SettingsTitleEnv:
 			m.currentView = SettingsAuthView
 			m.authFocusIndex = 0
@@ -291,4 +309,106 @@ func (m *Model) resetNgrokEchoModes() {
 	if len(m.ngrokFieldVisible) > 0 {
 		m.ngrokFieldVisible[0] = false
 	}
+}
+
+// updateGroupingModelPlaceholder sets a context-appropriate placeholder on
+// the model input based on the current grouping backend.
+func (m *Model) updateGroupingModelPlaceholder() {
+	if m.groupingBackend == api.BackendOllama {
+		m.groupingModelInput.Placeholder = "e.g. gemma3:4b, llava, llava-phi3, moondream"
+	} else {
+		m.groupingModelInput.Placeholder = "e.g. claude-opus-4-7, claude-sonnet-4-6, claude-haiku-4-5-20251001"
+	}
+}
+
+// updateSettingsGroupingView handles input for the AI Grouping Backend settings screen.
+// Focus 0 = backend toggle (←/→), 1 = model input, 2 = Ollama URL input.
+func (m *Model) updateSettingsGroupingView(msg tea.Msg) tea.Cmd {
+	var cmds []tea.Cmd
+
+	if keyMsg, ok := msg.(tea.KeyMsg); ok {
+		if key.Matches(keyMsg, Keys.Back) {
+			m.groupingModelInput.Blur()
+			m.groupingURLInput.Blur()
+			m.currentView = SettingsView
+			return nil
+		}
+
+		switch m.groupingFocusIndex {
+		case 0: // Backend toggle
+			switch {
+			case key.Matches(keyMsg, Keys.Left), key.Matches(keyMsg, Keys.Right):
+				if m.groupingBackend == api.BackendClaude {
+					m.groupingBackend = api.BackendOllama
+				} else {
+					m.groupingBackend = api.BackendClaude
+				}
+				m.updateGroupingModelPlaceholder()
+				return nil
+			case key.Matches(keyMsg, Keys.Down), key.Matches(keyMsg, Keys.Tab), key.Matches(keyMsg, Keys.Enter):
+				m.groupingFocusIndex = 1
+				cmds = append(cmds, m.groupingModelInput.Focus())
+				return tea.Batch(cmds...)
+			}
+
+		case 1: // Model input
+			switch {
+			case key.Matches(keyMsg, Keys.Up):
+				m.groupingFocusIndex = 0
+				m.groupingModelInput.Blur()
+				return nil
+			case key.Matches(keyMsg, Keys.Tab), key.Matches(keyMsg, Keys.Enter):
+				if m.groupingBackend == api.BackendOllama {
+					m.groupingFocusIndex = 2
+					m.groupingModelInput.Blur()
+					cmds = append(cmds, m.groupingURLInput.Focus())
+					return tea.Batch(cmds...)
+				}
+				return m.saveGroupingSettings()
+			}
+
+		case 2: // Ollama URL input
+			switch {
+			case key.Matches(keyMsg, Keys.Up):
+				m.groupingFocusIndex = 1
+				m.groupingURLInput.Blur()
+				cmds = append(cmds, m.groupingModelInput.Focus())
+				return tea.Batch(cmds...)
+			case key.Matches(keyMsg, Keys.Enter):
+				return m.saveGroupingSettings()
+			}
+		}
+	}
+
+	// Forward key events to the focused input.
+	switch m.groupingFocusIndex {
+	case 1:
+		var cmd tea.Cmd
+		m.groupingModelInput, cmd = m.groupingModelInput.Update(msg)
+		cmds = append(cmds, cmd)
+	case 2:
+		var cmd tea.Cmd
+		m.groupingURLInput, cmd = m.groupingURLInput.Update(msg)
+		cmds = append(cmds, cmd)
+	}
+
+	return tea.Batch(cmds...)
+}
+
+func (m *Model) saveGroupingSettings() tea.Cmd {
+	m.db.SetSetting("grouping_backend", m.groupingBackend)
+	model := m.groupingModelInput.Value()
+	m.db.SetSetting("grouping_model", model)
+	if m.groupingBackend == api.BackendOllama {
+		url := m.groupingURLInput.Value()
+		if url == "" {
+			url = api.DefaultOllamaURL
+		}
+		m.db.SetSetting("ollama_base_url", url)
+	}
+	m.groupingModelInput.Blur()
+	m.groupingURLInput.Blur()
+	m.statusMsg = "Grouping settings saved!"
+	m.currentView = SettingsView
+	return nil
 }

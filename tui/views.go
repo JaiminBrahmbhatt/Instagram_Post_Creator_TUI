@@ -11,6 +11,56 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+func (m *Model) viewAIGroup() string {
+	header := H2Style.Render("AI Photo Groups")
+
+	if len(m.aiGroups) == 0 {
+		return lipgloss.JoinVertical(lipgloss.Left, header, "",
+			BodySecondaryStyle.Render("No groups found. Try with more varied photos or check your ANTHROPIC_API_KEY."))
+	}
+
+	// Group list with selection indicator
+	var rows []string
+	for i, g := range m.aiGroups {
+		indicator := "  "
+		nameStyle := BodyStyle
+		if i == m.aiGroupIndex {
+			indicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+			nameStyle = lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
+		}
+		badge := BadgeInfoStyle.Render(fmt.Sprintf("%d photos", len(g.Photos)))
+		rows = append(rows, lipgloss.JoinHorizontal(lipgloss.Left,
+			indicator, nameStyle.Render(g.Name), "  ", badge))
+	}
+
+	// Detail card for selected group
+	sel := m.aiGroups[m.aiGroupIndex]
+	var names []string
+	for _, p := range sel.Photos {
+		names = append(names, "  "+filepath.Base(p))
+	}
+	detailCard := CardStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			CardHeaderStyle.Render(sel.Name),
+			BodyTertiaryStyle.Render(sel.Reason),
+			"",
+			BodySecondaryStyle.Render(strings.Join(names, "\n")),
+		),
+	)
+
+	limitNote := ""
+	if len(m.aiGroups) > 0 && len(m.aiGroups[0].Photos) > 0 {
+		limitNote = BodyTertiaryStyle.Render(fmt.Sprintf("Analyzed up to %d photos — press Enter to compose with selected group", api.MaxPhotosPerBatch))
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header, "",
+		strings.Join(rows, "\n"), "",
+		detailCard, "",
+		limitNote,
+	)
+}
+
 func (m *Model) viewBrowser() string {
 	header := H2Style.Render("Media Browser")
 
@@ -29,27 +79,27 @@ func (m *Model) viewBrowser() string {
 		)
 	}
 
-	helpText := BodyTertiaryStyle.Render("Enter: toggle • c: continue • q: back")
-
 	parts := []string{header}
 	if selectionInfo != "" {
 		parts = append(parts, selectionInfo)
 	}
-	parts = append(parts, m.browserTable.View(), "", helpText)
+
+	if m.filterMode {
+		cursor := lipgloss.NewStyle().Foreground(Theme.Primary).Render("▌")
+		filterBar := lipgloss.JoinHorizontal(lipgloss.Left,
+			BadgeInfoStyle.Render("FILTER"),
+			"  ",
+			InputFocusedStyle.Render(m.filterQuery+cursor),
+		)
+		parts = append(parts, filterBar, "")
+	}
+
+	parts = append(parts, m.browserTable.View())
 
 	return lipgloss.JoinVertical(lipgloss.Left, parts...)
 }
 
 func (m *Model) viewComposer() string {
-	if m.isProcessing {
-		return ""
-	}
-
-	if !m.isProcessing && len(m.lastLogs) > 0 && strings.Contains(m.lastLogs[len(m.lastLogs)-1], "Successfully") {
-		return SuccessStyle.Render("✅ Done! Your post is live.") + "\n\n" +
-			BodySecondaryStyle.Render("Press 'q' or 'Esc' to return to the main menu.")
-	}
-
 	header := H2Style.Render("Compose New Post")
 
 	fileCountBadge := BadgeInfoStyle.Render(fmt.Sprintf("%d Files Selected", len(m.selectedMedia)))
@@ -63,21 +113,12 @@ func (m *Model) viewComposer() string {
 		),
 	)
 
-	helpText := BodyTertiaryStyle.Render(
-		"Actions:\n" +
-			"• Enter: Schedule/Post Now\n" +
-			"• d:     Save as Draft\n" +
-			"• q:     Cancel",
-	)
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		fileCountBadge,
 		"",
 		inputCard,
-		"",
-		helpText,
 	)
 }
 
@@ -111,15 +152,11 @@ func (m *Model) viewDashboard() string {
 		),
 	)
 
-	helpText := BodyTertiaryStyle.Render("Press 'q' to return to menu")
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		quotaCard,
 		tunnelCard,
-		"",
-		helpText,
 	)
 }
 
@@ -139,7 +176,11 @@ func (m *Model) viewFooter() string {
 	}
 
 	if m.statusMsg != "" {
-		elements = append(elements, SuccessStyle.Render(m.statusMsg))
+		msgStyle := SuccessStyle
+		if strings.HasPrefix(m.statusMsg, "Error") {
+			msgStyle = ErrorStyle
+		}
+		elements = append(elements, msgStyle.Render(m.statusMsg))
 	}
 
 	if m.currentView != MenuView && m.currentView != SettingsView {
@@ -155,8 +196,16 @@ func (m *Model) viewFooter() string {
 			km = AuthKeyMap{KeyMap: Keys}
 		case SettingsDirView:
 			km = SettingsDirKeyMap{KeyMap: Keys}
+		case SettingsNgrokView:
+			km = NgrokKeyMap{KeyMap: Keys}
 		case DashboardView:
-			km = SettingsDirKeyMap{KeyMap: Keys}
+			km = DashboardKeyMap{KeyMap: Keys}
+		case SchedulerView:
+			km = DashboardKeyMap{KeyMap: Keys}
+		case AIGroupView:
+			km = AIGroupKeyMap{KeyMap: Keys}
+		case SettingsGroupingView:
+			km = GroupingKeyMap{KeyMap: Keys}
 		}
 
 		if km != nil {
@@ -180,9 +229,8 @@ func (m *Model) viewSettingsDir() string {
 
 	helpCard := InfoBoxStyle.Render(
 		lipgloss.JoinVertical(lipgloss.Left,
-			BodyStyle.Render("Navigation: Enter to open folder"),
-			BodyStyle.Render("Selection:  Press 's' to select THE CURRENT folder"),
-			BodyTertiaryStyle.Render("Esc/q: Back to settings"),
+			BodyStyle.Render("Enter: open folder"),
+			BodyStyle.Render("s:     select current folder as root"),
 		),
 	)
 
@@ -247,21 +295,12 @@ func (m *Model) viewSettingsAuth() string {
 		rows = append(rows, row)
 	}
 
-	var helpText string
-	if m.authEditing {
-		helpText = BodyTertiaryStyle.Render("Tab: switch • Enter: next/save • shift+tab: toggle visibility • q: cancel")
-	} else {
-		helpText = BodyTertiaryStyle.Render("↑/↓: select • Enter: edit • shift+tab: toggle visibility • q: back")
-	}
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		infoCard,
 		"",
 		strings.Join(rows, "\n"),
-		"",
-		helpText,
 	)
 }
 
@@ -290,6 +329,90 @@ func (m *Model) viewSetup() string {
 		header,
 		"",
 		questionCard,
+	)
+}
+
+func (m *Model) viewSettingsGrouping() string {
+	header := H2Style.Render("AI Grouping Backend")
+
+	infoCard := InfoBoxStyle.Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			BodySecondaryStyle.Render("Choose the AI backend used to cluster photos into carousel groups."),
+			BodySecondaryStyle.Render("Use ←/→ to switch backend, ↑/↓ or Tab to navigate fields, Enter to save."),
+		),
+	)
+
+	// Backend toggle row
+	backendFocused := m.groupingFocusIndex == 0
+	backendIndicator := "  "
+	if backendFocused {
+		backendIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+	}
+	backendLabelStyle := InputLabelStyle
+	if backendFocused {
+		backendLabelStyle = InputLabelFocusedStyle
+	}
+
+	var backendValue string
+	if m.groupingBackend == "ollama" {
+		backendValue = "◄ Ollama ►"
+	} else {
+		backendValue = "◄ Claude ►"
+	}
+	backendValueStyle := lipgloss.NewStyle().Foreground(Theme.Primary).Bold(true)
+
+	backendRow := lipgloss.JoinHorizontal(lipgloss.Left,
+		backendIndicator,
+		backendLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Backend")),
+		" ",
+		backendValueStyle.Render(backendValue),
+	)
+
+	// Model input row
+	modelFocused := m.groupingFocusIndex == 1
+	modelIndicator := "  "
+	if modelFocused {
+		modelIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+	}
+	modelLabelStyle := InputLabelStyle
+	if modelFocused {
+		modelLabelStyle = InputLabelFocusedStyle
+	}
+	modelRow := lipgloss.JoinHorizontal(lipgloss.Left,
+		modelIndicator,
+		modelLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Model")),
+		" ",
+		m.groupingModelInput.View(),
+	)
+
+	rows := []string{backendRow, modelRow}
+
+	// Ollama URL row — only shown for Ollama backend
+	if m.groupingBackend == "ollama" {
+		urlFocused := m.groupingFocusIndex == 2
+		urlIndicator := "  "
+		if urlFocused {
+			urlIndicator = lipgloss.NewStyle().Foreground(Theme.Primary).Render("› ")
+		}
+		urlLabelStyle := InputLabelStyle
+		if urlFocused {
+			urlLabelStyle = InputLabelFocusedStyle
+		}
+		urlRow := lipgloss.JoinHorizontal(lipgloss.Left,
+			urlIndicator,
+			urlLabelStyle.Render(lipgloss.NewStyle().Width(25).Render("Ollama URL")),
+			" ",
+			m.groupingURLInput.View(),
+		)
+		rows = append(rows, urlRow)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		"",
+		infoCard,
+		"",
+		strings.Join(rows, "\n"),
 	)
 }
 
@@ -347,15 +470,11 @@ func (m *Model) viewSettingsNgrok() string {
 		rows = append(rows, row)
 	}
 
-	helpText := BodyTertiaryStyle.Render("tab: switch • enter: save • shift+tab: toggle visibility • esc: back")
-
 	return lipgloss.JoinVertical(lipgloss.Left,
 		header,
 		"",
 		infoCard,
 		"",
 		strings.Join(rows, "\n"),
-		"",
-		helpText,
 	)
 }

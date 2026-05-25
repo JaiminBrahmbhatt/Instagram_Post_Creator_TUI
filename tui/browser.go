@@ -147,9 +147,9 @@ func browserColumns(tableWidth int) []table.Column {
 	}
 	return []table.Column{
 		{Title: " ", Width: 3},
-		{Title: "name", Width: nameWidth},
-		{Title: "status", Width: 10},
-		{Title: "size", Width: 10},
-		{Title: "modified", Width: 12},
+		{Title: "Name", Width: nameWidth},
+		{Title: "Status", Width: 10},
+		{Title: "Size", Width: 10},
+		{Title: "Modified", Width: 12},
 	}
 }
